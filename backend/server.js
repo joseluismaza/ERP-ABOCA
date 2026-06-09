@@ -27,6 +27,10 @@ import telefonoRoutes from './routes/telefonos.js';
 import historialRoutes from './routes/historial.js';
 import sistemaRoutes from './routes/sistemaRoutes.js';
 
+const cors = require('cors');
+app.use(cors({
+  origin: 'https://erp-aboca.vercel.app'
+}));
 
 
 const app = express();
