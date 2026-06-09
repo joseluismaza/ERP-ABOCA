@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply bg-slate-50 text-slate-900 antialiased scroll-smooth;
+  }
+}
+
+@layer components {
+  /* Enfoque de componentes reutilizables globales mínimos no cubiertos por utilidades puras */
+  .custom-scrollbar {
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      @apply bg-transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      @apply bg-slate-200 rounded-full hover:bg-slate-300;
+    }
+  }
+}

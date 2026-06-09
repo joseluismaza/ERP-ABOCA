@@ -1,0 +1,61 @@
+// frontend/src/components/CreateTelefonoModal.jsx
+import React from 'react';
+import useForm from '../hooks/useForm';
+import { createTelefono } from '../services/telefonoService';
+
+const CreateTelefonoModal = ({ isOpen, onClose, onCreated }) => {
+  const [values, handleChange, resetForm] = useForm({
+    numeroTelefono: '', numeroInterno: '', icc: '', pin1: '', puk1: '', tipoSIM: 'eSIM', estado: 'activo'
+  });
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await createTelefono(values);
+      onCreated();
+      resetForm();
+      onClose();
+    } catch (err) { alert(err.message || 'Error al registrar línea'); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+        <div className="bg-indigo-600 px-5 py-3.5 flex justify-between items-center text-white shadow-sm">
+          <h3 className="font-bold text-sm tracking-wide">Aprovisionar Nueva Línea</h3>
+          <button type="button" onClick={() => { resetForm(); onClose(); }} className="text-white hover:text-indigo-200 font-bold">✕</button>
+        </div>
+        <div className="p-5 overflow-y-auto flex-1 bg-slate-50/50 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="flex flex-col"><label className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">Número de Teléfono</label>
+            <input type="text" name="numeroTelefono" value={values.numeroTelefono} onChange={handleChange} required className="border border-slate-200 rounded-lg p-2 text-xs font-medium" />
+          </div>
+          <div className="flex flex-col"><label className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">Extensión Interna</label>
+            <input type="text" name="numeroInterno" value={values.numeroInterno} onChange={handleChange} required className="border border-slate-200 rounded-lg p-2 text-xs font-medium" />
+          </div>
+          <div className="flex flex-col"><label className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">ICC Tarjeta SIM</label>
+            <input type="text" name="icc" value={values.icc} onChange={handleChange} required className="border border-slate-200 rounded-lg p-2 text-xs font-medium" />
+          </div>
+          <div className="flex flex-col"><label className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">PIN 1</label>
+            <input type="text" name="pin1" value={values.pin1} onChange={handleChange} required className="border border-slate-200 rounded-lg p-2 text-xs font-medium" />
+          </div>
+          <div className="flex flex-col"><label className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">PUK 1</label>
+            <input type="text" name="puk1" value={values.puk1} onChange={handleChange} required className="border border-slate-200 rounded-lg p-2 text-xs font-medium" />
+          </div>
+          <div className="flex flex-col"><label className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">Formato de SIM</label>
+            <select name="tipoSIM" value={values.tipoSIM} onChange={handleChange} className="border border-slate-200 rounded-lg p-2 text-xs font-medium bg-white">
+              <option>eSIM</option><option>NanoSIM</option><option>MicroSIM</option><option>Física Estándar</option>
+            </select>
+          </div>
+        </div>
+        <div className="bg-white px-5 py-3.5 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onClick={() => { resetForm(); onClose(); }} className="px-4 py-2 text-xs font-bold text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200">Cancelar</button>
+          <button type="submit" className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm">Activar Línea</button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default CreateTelefonoModal;
