@@ -1,0 +1,16 @@
+{
+  "name": "erp-aboca",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo ERP Aboca — backend (Express) + frontend (React/Vite)",
+  "scripts": {
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0"
+  }
+}
