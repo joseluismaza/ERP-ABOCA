@@ -1,6 +1,7 @@
 // backend/services/onboardingService.js
 import pdf from 'pdfjs';
 import nodemailer from 'nodemailer';
+import Helvetica from 'pdfjs/font/Helvetica.js'
 
 /**
  * Genera un PDF cifrado con las credenciales y lo envía por correo electrónico al trabajador.
@@ -21,7 +22,7 @@ export const enviarCredencialesSeguras = async (trabajador) => {
 
   // 2. Crear el documento PDF en memoria utilizando pdfjs
   const doc = new pdf.Document({
-    font: require('pdfjs/font/Helvetica'),
+    font: Helvetica,
     padding: 20,
     // --- CIFRADO DE SEGURIDAD ---
     // Usamos el DNI/NIE en mayúsculas y sin espacios como contraseña de apertura (userPassword)

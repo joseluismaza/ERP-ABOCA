@@ -27,11 +27,12 @@ import telefonoRoutes from './routes/telefonos.js';
 import historialRoutes from './routes/historial.js';
 import sistemaRoutes from './routes/sistemaRoutes.js';
 
-const cors = require('cors');
-app.use(cors({
-  origin: 'https://erp-aboca.vercel.app'
-}));
-
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
 
 const app = express();
 
@@ -40,7 +41,8 @@ app.set('trust proxy', 1);
 
 // Capas de seguridad HTTP corporativa y análisis de carga útil
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions)); 
+
 app.use(express.json());
 
 // Limitador genérico para operaciones ordinarias en las colecciones del ERP
@@ -63,7 +65,7 @@ const authLimiter = rateLimit({
   skip: (req) => process.env.NODE_ENV === 'development'
 });
 
-
+app.use('/api', globalLimiter);
 
 // Aplicación inteligente de las políticas de Rate Limit por segmento
 app.use('/api/auth/login', authLimiter);
@@ -77,7 +79,6 @@ app.use('/api/telefonos', telefonoRoutes);
 app.use('/api/historial', historialRoutes);
 app.use('/api/sistema', sistemaRoutes);
 
-app.use('/api', globalLimiter);
 // Interceptor global final para capturar y normalizar todas las excepciones de la aplicación
 app.use(errorHandler);
 

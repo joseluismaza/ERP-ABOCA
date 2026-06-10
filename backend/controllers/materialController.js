@@ -20,6 +20,23 @@ export const getMaterialById = catchAsync(async (req, res) => {
   res.json(material);
 });
 
+export const getMaterialBySnOrImei = catchAsync(async (req, res) => {
+  const { code } = req.params;
+
+  const material = await Material.findOne({
+    $or: [
+      { sn: code },
+      { imei: code }
+    ]
+  }).populate('TrabajadorId', 'nombre apellidos');
+
+  if (!material) {
+    return res.status(404).json({ error: `No se encontró ningún material con S/N o IMEI: ${code}` });
+  }
+
+  res.json(material);
+});
+
 export const createMaterial = catchAsync(async (req, res) => {
   const nuevoMaterial = new Material(req.body);
   const material = await nuevoMaterial.save();
@@ -88,6 +105,7 @@ export const deleteMaterial = catchAsync(async (req, res) => {
   await Historial.create({
     tipoOperacion: 'delete',
     elementoTipo: 'Material',
+    elementoId: materialId, 
     observaciones: `🚨 ELIMINACIÓN DE ACTIVO IRREVERSIBLE: El hardware [${material.marca} ${material.modelo}] con S/N: [${material.sn || 'N/A'}] fue purgado permanentemente del inventario operativo.`
   });
 

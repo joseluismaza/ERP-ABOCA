@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
+import { decrypt } from "../utils/crypto.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -329,7 +330,7 @@ export const generarLlaveroCredencialesCifrado = catchAsync(async (req, res) => 
   };
 
   // Renderizado de los 8 sistemas
-  appendSystem('1. Office365 & Mail', trabajador.emailAboca, trabajador.password);
+  appendSystem('1. Office365 & Mail', trabajador.emailAboca, decrypt(trabajador.password));
   appendSystem('2. CYTRIC – Reserva de Billetes / Hoteles', trabajador.emailAboca, 'Aboca02+', 'URL: https://amadeus.cytric.net/env-b/ibe/?system=ama-nautalia-grupoaboca');
   appendSystem('3. Incidencias ServiceTonic (Por confirmar)', codComercialLimpio, '12345678', 'URL: https://aboca.myservicetonic.com/ServiceTonic/login.jsf');
   appendSystem('4. ORDINI (Por confirmar)', String(trabajador.username || '').toUpperCase(), String(trabajador.password || '').toUpperCase(), 'HostName:');
@@ -339,7 +340,7 @@ export const generarLlaveroCredencialesCifrado = catchAsync(async (req, res) => 
   
   const pinIphone = trabajador.pinIphone || 'N/A';
   const pinIpad = trabajador.pinIpad || 'N/A';
-  appendSystem('8. Apple ID & Terminales Movilidad', trabajador.appleID, trabajador.passwordApple, `PIN iPhone: ${pinIphone}   |   PIN iPad: ${pinIpad}   |   PIN Desbloqueo General: 110303`);
+  appendSystem('8. Apple ID & Terminales Movilidad', trabajador.appleID, decrypt(trabajador.passwordApple), `PIN iPhone: ${pinIphone}   |   PIN iPad: ${pinIpad}   |   PIN Desbloqueo General: 110303`);
 
   // Footer de seguridad
   doc.moveDown(0.5);

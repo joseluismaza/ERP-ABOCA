@@ -23,27 +23,17 @@ const historialSchema = new mongoose.Schema({
     fechaAsignacion: Date,
     fechaDevolucion: Date
   },
+  observaciones: { 
+    type: String, 
+    required: true 
+  },
   archivoAdjunto: {
-    type: Buffer, // Guarda el PDF binario directamente
+    type: Buffer // Guarda el PDF binario directamente
   },
   documentoTipo: {
     type: String,
     enum: ['ENTREGA', 'DEVOLUCION', 'CREDENCIALES'],
   },
-  observaciones: { 
-    type: String, 
-    required: true 
-  },
-  
-  // 📥 NUEVOS CAMPOS ADJUNTOS PARA EL BLOQUE B Y C
-  archivoAdjunto: {
-    type: Buffer // Guarda el archivo binario PDF bruto directamente en la base de datos MongoDB
-  },
-  documentoTipo: {
-    type: String,
-    enum: ['ENTREGA', 'DEVOLUCION', 'CREDENCIALES'] // Clasifica el documento para estructurar las descargas
-  }
-
 }, { 
   timestamps: true, 
   collection: 'historial' 

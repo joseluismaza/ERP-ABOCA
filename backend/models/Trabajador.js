@@ -68,4 +68,13 @@ trabajadorSchema.pre('save', function (next) {
   next();
 });
 
+trabajadorSchema.pre('save', function(next) {
+  if (this.isModified('password') && this.password) {
+    this.password = encrypt(this.password);
+  }
+  if (this.isModified('passwordApple') && this.passwordApple) {
+    this.passwordApple = encrypt(this.passwordApple);
+  }
+  next();
+});
 export default mongoose.model('Trabajador', trabajadorSchema);
