@@ -194,7 +194,7 @@ export const documentarMateriales = catchAsync(async (req, res) => {
 
   const materialesPayload = materialesParaActa.map(m => ({
     nombre: `${m.marca} ${m.modelo} (${m.tipo})`,
-    numeroSerie: m.sn || m.numeroSerie || 'S/N'
+    numeroSerie: m.sn || 'S/N'
   }));
 
   // 3. Generamos el PDF con los materiales filtrados

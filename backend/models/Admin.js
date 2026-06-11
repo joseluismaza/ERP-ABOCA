@@ -9,7 +9,10 @@ const adminSchema = new mongoose.Schema({
   },
   password: { 
     type: String, 
-    required: [true, 'La contraseña cifrada es obligatoria'] 
+    required: [true, 'La contraseña cifrada es obligatoria'],
+    // 🔒 Mismo tratamiento que en Trabajador: Admin.find()/findOne() no traen
+    // este campo salvo que se pida explícitamente con .select('+password').
+    select: false
   },
   rol: { 
     type: String, 

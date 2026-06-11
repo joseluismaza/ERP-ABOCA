@@ -1,4 +1,4 @@
-// backend/routes/trabajador.js
+// backend/routes/trabajadores.js
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import {
@@ -20,7 +20,6 @@ router.use(authenticateToken);
 router.get('/exportar', exportToExcel);
 router.get('/smtp-status', checkSMTPStatus);
 
-router.post('/:id/credenciales', generarLlaveroCredencialesCifrado);
 router.post('/:id/credenciales-lote', generarLlaveroCredencialesCifrado);
 // 🔒 Revela password/passwordApple en texto claro, previa reconfirmación de la
 // contraseña del administrador autenticado.

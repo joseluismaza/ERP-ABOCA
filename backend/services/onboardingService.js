@@ -2,7 +2,7 @@
 import pdf from 'pdfjs';
 import nodemailer from 'nodemailer';
 import Helvetica from 'pdfjs/font/Helvetica.js'
-import { decrypt } from '../utils/crypto.js';
+import { descifrarCredencialesTrabajador } from '../utils/crypto.js';
 
 /**
  * Genera un PDF cifrado con las credenciales y lo envía por correo electrónico al trabajador.
@@ -10,14 +10,16 @@ import { decrypt } from '../utils/crypto.js';
  */
 export const enviarCredencialesSeguras = async (trabajador) => {
   // 1. Configurar el transportador de correo (SMTP)
-  // Reemplaza estos valores con los datos reales de tu servidor de correo corporativo o Gmail corporativo
+  // 🔒 SMTP_HOST, SMTP_USER y SMTP_PASS son obligatorios (validados al
+  // arrancar en server.js), sin valores de relleno: si faltaran, el correo
+  // de bienvenida fallaría de forma confusa solo al dar de alta a alguien.
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com', 
+    host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '465'),
     secure: true, // true para puerto 465, false para otros puertos
     auth: {
-      user: process.env.SMTP_USER || 'tu-correo-corporativo@aboca.es',
-      pass: process.env.SMTP_PASS || 'tu-contrasena-de-aplicacion'
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
     }
   });
 
@@ -43,20 +45,8 @@ export const enviarCredencialesSeguras = async (trabajador) => {
   // 🔒 Descifrado de las contraseñas reales. trabajador.password/passwordApple
   // están cifrados en BBDD (AES-256-GCM); si se incluyeran tal cual en el PDF,
   // el empleado recibiría texto cifrado ilegible en vez de su contraseña real.
-  let passwordDescifrada = null;
-  let passwordAppleDescifrada = null;
-
-  try {
-    passwordDescifrada = decrypt(trabajador.password);
-  } catch (err) {
-    console.error('⚠️ Error al descifrar password del trabajador:', err.message);
-  }
-
-  try {
-    passwordAppleDescifrada = decrypt(trabajador.passwordApple);
-  } catch (err) {
-    console.error('⚠️ Error al descifrar passwordApple del trabajador:', err.message);
-  }
+  const { password: passwordDescifrada, passwordApple: passwordAppleDescifrada } =
+    descifrarCredencialesTrabajador(trabajador);
 
   // 3. Diseñar el contenido estético del PDF corporativo
   // Encabezado

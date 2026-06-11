@@ -18,7 +18,13 @@ export const login = catchAsync(async (req, res) => {
   }
 
   // 2. Consulta en la base de datos (Colección: usuarios) mapeada por el modelo Admin
-  const admin = await Admin.findOne({ username });
+  // 🔒 .select('+password'): el campo está oculto por defecto (select: false en el
+  // esquema), pero aquí lo necesitamos para poder verificarlo con bcrypt.
+  const admin = await Admin.findOne({ username }).select('+password');
+
+  // 🩺 LOG TEMPORAL DE DIAGNÓSTICO - lo quitaremos en cuanto identifiquemos el problema
+  console.log('[DEBUG login] admin encontrado:', admin ? admin.toObject() : null);
+  console.log('[DEBUG login] tipo de admin.password:', typeof admin?.password);
   
   // El uso de mensajes de error idénticos previene ataques de enumeración de cuentas por fuerza bruta
   if (!admin) {

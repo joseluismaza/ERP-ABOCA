@@ -6,11 +6,25 @@ import Telefono from '../models/Telefono.js';
 import { catchAsync } from '../middleware/errorHandler.js';
 
 /**
+ * Normaliza el campo "elementoTipo" de un registro de Historial a su forma
+ * canónica ('Material', 'Trabajador' o 'Telefono'), aceptando variantes en
+ * minúsculas y la grafía con tilde "teléfono".
+ * Devuelve null si el valor no se reconoce.
+ */
+const normalizarElementoTipo = (valor) => {
+  const tipo = String(valor || '').toLowerCase().trim();
+  if (tipo === 'material') return 'Material';
+  if (tipo === 'trabajador') return 'Trabajador';
+  if (tipo === 'telefono' || tipo === 'teléfono') return 'Telefono';
+  return null;
+};
+
+/**
  * Obtiene toda la colección de logs mapeando las claves nativas de la DB 
  * a la estructura requerida por las columnas del Frontend (usuario, accion, detalles).
  */
 export const getAllHistorial = catchAsync(async (req, res) => {
-  // 1. Obtenemos los registros ordenados por fecha descrucijando binarios pesados
+  // 1. Obtenemos los registros ordenados por fecha, descartando el binario pesado del PDF
   const logs = await Historial.find()
     .select('-archivoAdjunto')
     .sort({ createdAt: -1 })
@@ -36,22 +50,22 @@ export const getAllHistorial = catchAsync(async (req, res) => {
   const historialFormateado = logs.map(log => {
     const obj = log.toObject();
     const idBuscado = String(obj.elementoId || '');
-    const tipo = String(obj.elementoTipo || '').toLowerCase().trim();
+    const tipo = normalizarElementoTipo(obj.elementoTipo);
 
     // Resolver el elemento físico asociado
     let elementoPoblado = null;
-    if (tipo === 'material') elementoPoblado = mapMateriales.get(idBuscado) || null;
-    else if (tipo === 'trabajador') elementoPoblado = mapTrabajadores.get(idBuscado) || null;
-    else if (tipo === 'telefono' || tipo === 'teléfono') elementoPoblado = mapTelefonos.get(idBuscado) || null;
+    if (tipo === 'Material') elementoPoblado = mapMateriales.get(idBuscado) || null;
+    else if (tipo === 'Trabajador') elementoPoblado = mapTrabajadores.get(idBuscado) || null;
+    else if (tipo === 'Telefono') elementoPoblado = mapTelefonos.get(idBuscado) || null;
 
     // --- CONSTRUCCIÓN DEL STRING DE DETALLES ---
     let cadenaDetalles = obj.observaciones || '';
     if (elementoPoblado) {
-      if (tipo === 'material') {
+      if (tipo === 'Material') {
         cadenaDetalles += ` [${elementoPoblado.marca} ${elementoPoblado.modelo} - S/N: ${elementoPoblado.sn || 'N/A'}]`;
-      } else if (tipo === 'trabajador') {
+      } else if (tipo === 'Trabajador') {
         cadenaDetalles += ` [Trabajador: ${elementoPoblado.nombre} ${elementoPoblado.apellidos}]`;
-      } else if (tipo === 'telefono') {
+      } else if (tipo === 'Telefono') {
         cadenaDetalles += ` [Línea: ${elementoPoblado.numeroTelefono} (Int. ${elementoPoblado.numeroInterno || 'N/A'})]`;
       }
     }
@@ -94,11 +108,11 @@ export const getHistorialById = catchAsync(async (req, res) => {
   
   const obj = registro.toObject();
   const idBuscado = String(obj.elementoId || '');
-  const tipo = String(obj.elementoTipo || '').toLowerCase().trim();
+  const tipo = normalizarElementoTipo(obj.elementoTipo);
   
-  if (tipo === 'material') obj.elementoId = await Material.findById(idBuscado).lean();
-  else if (tipo === 'trabajador') obj.elementoId = await Trabajador.findById(idBuscado).lean();
-  else if (tipo === 'telefono' || tipo === 'teléfono') obj.elementoId = await Telefono.findById(idBuscado).lean();
+  if (tipo === 'Material') obj.elementoId = await Material.findById(idBuscado).lean();
+  else if (tipo === 'Trabajador') obj.elementoId = await Trabajador.findById(idBuscado).lean();
+  else if (tipo === 'Telefono') obj.elementoId = await Telefono.findById(idBuscado).lean();
 
   // Inyectamos alias para la vista singular
   obj.accion = String(obj.tipoOperacion).toUpperCase();
@@ -113,10 +127,10 @@ export const getHistorialById = catchAsync(async (req, res) => {
 export const createHistorial = catchAsync(async (req, res) => {
   const datosCuerpo = { ...req.body };
   if (datosCuerpo.elementoTipo) {
-    const tipo = datosCuerpo.elementoTipo.toLowerCase().trim();
-    if (tipo === 'material') datosCuerpo.elementoTipo = 'Material';
-    else if (tipo === 'trabajador') datosCuerpo.elementoTipo = 'Trabajador';
-    else if (tipo === 'telefono' || tipo === 'teléfono') datosCuerpo.elementoTipo = 'Telefono';
+    const tipoNormalizado = normalizarElementoTipo(datosCuerpo.elementoTipo);
+    if (tipoNormalizado) {
+      datosCuerpo.elementoTipo = tipoNormalizado;
+    }
   }
   const nuevoRegistro = new Historial(datosCuerpo);
   const registro = await nuevoRegistro.save();

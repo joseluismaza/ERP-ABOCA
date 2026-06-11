@@ -10,7 +10,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
-import { encrypt, decrypt } from "../utils/crypto.js";
+import { encrypt, descifrarCredencialesTrabajador } from "../utils/crypto.js";
+import { activarTrabajadoresPendientes } from "../services/cronService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,18 +27,10 @@ try {
 }
 
 export const getAllTrabajadores = catchAsync(async (req, res) => {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-
-  await Trabajador.updateMany(
-    {
-      estado: 'Pendiente de alta',
-      fechaAlta: { $lte: hoy }
-    },
-    {
-      $set: { estado: 'Activo' }
-    }
-  );
+  // Activa automáticamente a los trabajadores cuya fechaAlta ya ha llegado
+  // y registra cada activación en el Historial (lógica compartida con el
+  // cron diario, ver services/cronService.js)
+  await activarTrabajadoresPendientes();
 
   const trabajadores = await Trabajador.find();
   res.json(trabajadores);
@@ -148,10 +141,8 @@ export const exportToExcel = catchAsync(async (req, res) => {
     { header: 'Calendario', key: 'calendario', width: 18},
     { header: 'Estado', key: 'estado', width: 18 },
     { header: 'Email Corporativo', key: 'emailAboca', width: 28 },
-    { header: 'Password Aboca', key: 'password', width: 10},
     { header: 'Username', key: 'username', width: 18},
     { header: 'Apple Id', key: 'appleID', width: 28},
-    { header: 'Password Apple', key: 'passwordApple', width: 10},
     { header: 'Fecha Alta', key: 'fechaAlta', width: 15 },
     { header: 'Fecha Baja', key: 'fechaBaja', width: 15 },
     { header: 'Nº Contable', key: 'nContable', width: 15},
@@ -192,7 +183,6 @@ export const exportToExcel = catchAsync(async (req, res) => {
       calendario: t.calendario || '',
       username: t.username || '',
       appleID: t.appleID || '',
-      passwordApple: t.passwordApple || '',
       nContable: t.nContable || '',
       codComercial: t.codComercial || '',
       agentComercial: t.agentComercial || '',
@@ -220,7 +210,6 @@ export const exportToExcel = catchAsync(async (req, res) => {
   await workbook.xlsx.write(res);
   res.end();
 });
-
 
 /**
  * 🔒 RUTA REESTRUCTURADA Y CORREGIDA: POST /api/trabajador/:id/credenciales-lote
@@ -345,20 +334,8 @@ export const generarLlaveroCredencialesCifrado = catchAsync(async (req, res) => 
   // 🔒 Descifrado de las contraseñas reales. Se hace UNA sola vez aquí y se
   // reutiliza en todos los sistemas, en vez de mostrar trabajador.password
   // (que en BBDD está cifrado) directamente en algunas tarjetas como pasaba antes.
-  let passwordDescifrada = null;
-  let passwordAppleDescifrada = null;
-
-  try {
-    passwordDescifrada = decrypt(trabajador.password);
-  } catch (err) {
-    console.error('⚠️ Error al descifrar password del trabajador:', err.message);
-  }
-
-  try {
-    passwordAppleDescifrada = decrypt(trabajador.passwordApple);
-  } catch (err) {
-    console.error('⚠️ Error al descifrar passwordApple del trabajador:', err.message);
-  }
+  const { password: passwordDescifrada, passwordApple: passwordAppleDescifrada } =
+    descifrarCredencialesTrabajador(trabajador);
 
   // Renderizado de los 8 sistemas
   appendSystem('1. Office365 & Mail', trabajador.emailAboca, passwordDescifrada);
@@ -405,7 +382,7 @@ export const revelarCredenciales = catchAsync(async (req, res) => {
 
   // 1. Identificamos al administrador autenticado a partir del token JWT
   const adminId = req.user.id || req.user._id;
-  const administrador = await Admin.findById(adminId);
+  const administrador = await Admin.findById(adminId).select('+password');
 
   if (!administrador) {
     return res.status(404).json({ error: 'El administrador de la sesión actual no existe en el sistema.' });
@@ -425,20 +402,8 @@ export const revelarCredenciales = catchAsync(async (req, res) => {
 
   // 4. Descifrado seguro: si algún valor está vacío o no es descifrable, devolvemos null
   // en lugar de romper toda la petición.
-  let passwordDescifrada = null;
-  let passwordAppleDescifrada = null;
-
-  try {
-    passwordDescifrada = decrypt(trabajador.password);
-  } catch (err) {
-    console.error('⚠️ Error al descifrar password del trabajador:', err.message);
-  }
-
-  try {
-    passwordAppleDescifrada = decrypt(trabajador.passwordApple);
-  } catch (err) {
-    console.error('⚠️ Error al descifrar passwordApple del trabajador:', err.message);
-  }
+  const { password: passwordDescifrada, passwordApple: passwordAppleDescifrada } =
+    descifrarCredencialesTrabajador(trabajador);
 
   res.status(200).json({
     success: true,

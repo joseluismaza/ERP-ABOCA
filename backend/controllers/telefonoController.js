@@ -53,7 +53,7 @@ export const updateTelefono = catchAsync(async (req, res) => {
     tipoOperacion: 'update',
     elementoTipo: 'Telefono',
     elementoId: telefono._id,
-    observaciones: `Número ${telefono.numeroTelefono} modificados. Estado operativo actual: ${telefono.estado.toUpperCase()}.`
+    observaciones: `Línea ${telefono.numeroTelefono} modificada. Estado operativo actual: ${String(telefono.estado || '').toUpperCase()}.`
   });
 
   res.json(telefono);
@@ -75,6 +75,7 @@ export const deleteTelefono = catchAsync(async (req, res) => {
 
   res.json({ message: 'Línea de comunicación eliminada correctamente.' });
 });
+
 export const exportToExcel = catchAsync(async (req, res) => {
   const telefonos = await Telefono.find().populate('TrabajadorId', 'nombre apellidos');
 

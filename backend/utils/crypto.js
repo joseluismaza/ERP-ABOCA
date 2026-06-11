@@ -52,3 +52,36 @@ export const decrypt = (encryptedText) => {
   decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
   return decipher.update(Buffer.from(dataHex, 'hex')) + decipher.final('utf8');
 };
+
+/**
+ * Descifra los campos password/passwordApple de un trabajador.
+ *
+ * Si algún valor está vacío, no es descifrable, o ENCRYPTION_KEY no está
+ * configurada, esa contraseña concreta queda como `null` (y se registra el
+ * error en consola) en lugar de interrumpir toda la petición con una excepción.
+ *
+ * Se reutiliza desde el envío de credenciales en el alta (onboardingService),
+ * el llavero PDF completo y el endpoint de revelar credenciales.
+ *
+ * @param {{ password?: string, passwordApple?: string }} trabajador - documento
+ *   con password/passwordApple ya cargados (select('+password +passwordApple') si procede).
+ * @returns {{ password: string|null, passwordApple: string|null }}
+ */
+export const descifrarCredencialesTrabajador = (trabajador) => {
+  let password = null;
+  let passwordApple = null;
+
+  try {
+    password = decrypt(trabajador.password);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar password del trabajador:', err.message);
+  }
+
+  try {
+    passwordApple = decrypt(trabajador.passwordApple);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar passwordApple del trabajador:', err.message);
+  }
+
+  return { password, passwordApple };
+};

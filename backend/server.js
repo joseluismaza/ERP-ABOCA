@@ -5,7 +5,7 @@ dotenv.config();
 // Si falta alguna, detenemos el arranque con un mensaje claro en lugar de
 // dejar que el código siga funcionando con valores por defecto inseguros
 // (como ocurría antes con JWT_SECRET = 'secret').
-const variablesObligatorias = ['JWT_SECRET', 'PDF_OWNER_KEY'];
+const variablesObligatorias = ['JWT_SECRET', 'PDF_OWNER_KEY', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
 const variablesFaltantes = variablesObligatorias.filter((nombre) => !process.env[nombre]);
 
 if (variablesFaltantes.length > 0) {
