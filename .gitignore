@@ -1,0 +1,21 @@
+# Dependencias instaladas (cada paquete -backend, frontend y raíz- tiene la suya)
+node_modules/
+
+# Variables de entorno: nunca deben subirse al repositorio (contraseñas, claves, etc.)
+.env
+.env.local
+.env.*.local
+
+# Carpetas de compilación / build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archivos generados por el sistema operativo o el editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
