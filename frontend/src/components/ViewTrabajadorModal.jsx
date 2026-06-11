@@ -1,9 +1,7 @@
 // frontend/src/components/ViewTrabajadorModal.jsx
 import React, { useState, useMemo } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
-import axios from 'axios';
-import { revelarCredenciales as revelarCredencialesApi } from '../services/trabajadorService';
-import { getAuthToken } from '../services/api';
+import { revelarCredenciales as revelarCredencialesApi, descargarLlaveroCredenciales } from '../services/trabajadorService';
 import { FileText, Download, HardDrive, KeyRound, Globe, Mail, Landmark, Sliders } from 'lucide-react';
 
 const ViewTrabajadorModal = ({ item, onClose }) => {
@@ -80,15 +78,10 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
     setProcesandoPdf(true);
     try {
       const idTrabajador = item._id || item.id;
-      
-      // 🛠️ CORRECCIÓN AQUÍ: Cambiado de /api/trabajadores a /api/trabajador para coincidir con el backend
-      // 🔒 Token de sesión en memoria (ya no se guarda en localStorage/sessionStorage)
-      const respuesta = await axios.post(`http://localhost:5000/api/trabajador/${idTrabajador}/credenciales-lote`, {}, {
-        responseType: 'blob',
-        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
-      });
 
-      const blob = new Blob([respuesta.data], { type: 'application/pdf' });
+      const pdfBlob = await descargarLlaveroCredenciales(idTrabajador);
+
+      const blob = new Blob([pdfBlob], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
       link.download = `Credenciales_Aboca_${item.nombre.toUpperCase()}_${item.apellidos.toUpperCase()}.pdf`;
@@ -100,8 +93,8 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
     } catch (err) {
       console.error("Error detallado de la descarga:", err);
       // Muestra una ayuda más técnica si sigue fallando la ruta
-      if (err.response?.status === 404) {
-        alert('Error 404: El endpoint de descarga no se encuentra en el backend. Revisa que el enrutador tenga definido /api/trabajador/:id/credenciales-lote o la ruta equivalente.');
+      if (err.status === 404) {
+        alert('Error 404: El endpoint de descarga no se encuentra en el backend. Revisa que el enrutador tenga definido /api/trabajadores/:id/credenciales-lote o la ruta equivalente.');
       } else {
         alert('Error crítico al procesar y cifrar el lote de credenciales.');
       }

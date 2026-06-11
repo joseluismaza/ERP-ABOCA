@@ -1,7 +1,7 @@
 // frontend/src/components/ViewTelefonosModal.jsx
 import React, { useState, useMemo } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
-import axios from 'axios';
+import { descargarLlaveroCredenciales } from '../services/trabajadorService';
 import { Shield, FileText, Download, KeyRound, Smartphone } from 'lucide-react';
 
 const ViewTelefonosModal = ({ item, onClose }) => {
@@ -59,13 +59,10 @@ const ViewTelefonosModal = ({ item, onClose }) => {
     setProcesandoPdf(true);
     try {
       const idTrabajador = trabajadorAsignado._id || trabajadorAsignado.id;
-      
-      // Petición al backend que genera el PDFKit con el logo corporativo visible y buffer cerrado
-      const respuesta = await axios.post(`/api/trabajador/${idTrabajador}/credenciales-lote`, {}, {
-        responseType: 'blob'
-      });
 
-      const blob = new Blob([respuesta.data], { type: 'application/pdf' });
+      const pdfBlob = await descargarLlaveroCredenciales(idTrabajador);
+
+      const blob = new Blob([pdfBlob], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
       link.download = `LLAVERO_COMPLETO_${trabajadorAsignado.nombre.toUpperCase()}_${trabajadorAsignado.apellidos?.toUpperCase() || ''}.pdf`;

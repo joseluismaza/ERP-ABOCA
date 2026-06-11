@@ -2,9 +2,41 @@
 import React, { useState } from 'react';
 import { createTrabajador } from '../services/trabajadorService'; // Ajusta la ruta a tu API
 
-const CreateTrabajadorModal = ({ isOpen, onClose, onCreated }) => {
-  if (!isOpen) return null;
+// Valores por defecto del formulario, extraídos a una función para poder
+// "resetear" el formulario tras un alta exitosa con los mismos valores
+// iniciales (incluida la fecha de alta = hoy en ese momento).
+const getInitialFormData = () => ({
+  nombre: '',
+  apellidos: '',
+  dni: '',
+  fechaNacimiento: '',
+  genero: '',
+  estado: 'Pendiente de alta',
+  matriculaSAP: '',
+  cargo: '',
+  agente: '',
+  codigoZona: '',
+  zona: '',
+  calendario: 'Estándar',
+  fechaAlta: new Date().toISOString().split('T')[0], // Por defecto hoy
+  fechaBaja: '',
+  nContable: '',
+  activo: true,
+  emailAboca: '',
+  username: '',
+  password: '',
+  appleID: '',
+  passwordApple: '',
+  codComercial: '',
+  agentComercial: '',
+  codMedico: '',
+  agentMedico: '',
+  telefono: '',
+  poblacion: '',
+  domicilio: ''
+});
 
+const CreateTrabajadorModal = ({ isOpen, onClose, onCreated }) => {
   // Estados de visibilidad para las contraseñas iniciales
   const [showPass, setShowPass] = useState(false);
   const [showApplePass, setShowApplePass] = useState(false);
@@ -13,36 +45,13 @@ const CreateTrabajadorModal = ({ isOpen, onClose, onCreated }) => {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Estado inicial con los valores por defecto del esquema
-  const [formData, setFormData] = useState({
-    nombre: '',
-    apellidos: '',
-    dni: '',
-    fechaNacimiento: '',
-    genero: '',
-    estado: 'Pendiente de alta',
-    matriculaSAP: '',
-    cargo: '',
-    agente: '',
-    codigoZona: '',
-    zona: '',
-    calendario: 'Estándar',
-    fechaAlta: new Date().toISOString().split('T')[0], // Por defecto hoy
-    fechaBaja: '',
-    nContable: '',
-    activo: true,
-    emailAboca: '',
-    username: '',
-    password: '',
-    appleID: '',
-    passwordApple: '',
-    codComercial: '',
-    agentComercial: '',
-    codMedico: '',
-    agentMedico: '',
-    telefono: '',
-    poblacion: '',
-    domicilio: ''
-  });
+  const [formData, setFormData] = useState(getInitialFormData);
+
+  // 🔒 Este return condicional debe ir DESPUÉS de declarar todos los hooks:
+  // los hooks de React deben llamarse siempre en el mismo orden en cada
+  // renderizado. Si fuera antes, React lanzaría "Rendered fewer/more hooks
+  // than during the previous render" al abrir/cerrar el modal.
+  if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -64,7 +73,7 @@ const CreateTrabajadorModal = ({ isOpen, onClose, onCreated }) => {
       onClose();
       
       // Limpiamos el formulario tras un alta exitosa
-      setFormData({});
+      setFormData(getInitialFormData());
     } catch (err) {
       setErrorMsg(err.message || 'Error al procesar el alta del nuevo trabajador.');
     } finally {

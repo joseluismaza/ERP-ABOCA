@@ -34,6 +34,7 @@ export const deleteTelefono = async (id) => {
   dataCache.invalidate(CACHE_KEY);
   return response;
 };
+
 export const exportarTelefonosExcel = async () => {
   const response = await api.get('/telefonos/exportar', {
     responseType: 'blob'

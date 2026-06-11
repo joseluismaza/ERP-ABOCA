@@ -72,3 +72,14 @@ export const revelarCredenciales = async (id, password) => {
   const response = await api.post(`/trabajadores/${id}/revelar-credenciales`, { password });
   return response.data;
 };
+
+// Descarga el PDF "llavero" con todas las credenciales del trabajador, cifrado
+// con su DNI/NIE. Al usar 'api', el token JWT y la URL base correctas se
+// aplican automáticamente (antes esto se hacía con axios directo y una URL
+// fija a localhost:5000, lo que rompía la descarga en producción).
+export const descargarLlaveroCredenciales = async (id) => {
+  const response = await api.post(`/trabajadores/${id}/credenciales-lote`, {}, {
+    responseType: 'blob'
+  });
+  return response.data;
+};

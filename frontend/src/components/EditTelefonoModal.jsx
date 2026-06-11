@@ -34,8 +34,10 @@ const EditTelefonoModal = ({ isOpen, onClose, telefono, onUpdated }) => {
     }
   }, [telefono, setValues]);
 
-  if (!isOpen || !telefono) return null;
-
+  // 🔒 Este useMemo debe ir ANTES de cualquier "return null" condicional:
+  // los hooks de React deben llamarse siempre en el mismo orden en cada
+  // renderizado, nunca solo quizás. Si fuera después, se saltaría cuando
+  // el modal está cerrado y React podría lanzar errores de "fewer hooks".
   const trabajadoresFiltradosYOrdenados = useMemo(() => {
     const actualId = telefono?.TrabajadorId?._id || telefono?.TrabajadorId || '';
 

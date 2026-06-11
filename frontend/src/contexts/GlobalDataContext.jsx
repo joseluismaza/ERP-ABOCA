@@ -89,7 +89,7 @@ export const GlobalDataProvider = ({ children }) => {
     refreshGlobalData();
   }, [refreshGlobalData]);
 
-return (
+  return (
     <GlobalDataContext.Provider value={{ 
       trabajadores, 
       materiales, 

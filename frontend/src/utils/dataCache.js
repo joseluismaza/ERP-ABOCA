@@ -1,4 +1,4 @@
-// frontend/src/services/dataCache.js
+// frontend/src/utils/dataCache.js
 
 // Almacén aislado en memoria para evitar colisiones con el espacio de nombres global
 const cacheStorage = new Map();

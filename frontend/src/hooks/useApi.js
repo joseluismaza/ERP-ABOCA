@@ -45,7 +45,7 @@ export const useApi = (serviceFunction) => {
       if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') return;
 
       if (isMountedRef.current) {
-        setError(err.response?.data?.error ?? err.message ?? 'Error desconocido');
+        setError(err.message ?? 'Error desconocido');
       }
     } finally {
       if (isMountedRef.current) {

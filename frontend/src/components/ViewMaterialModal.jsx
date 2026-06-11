@@ -1,8 +1,7 @@
 // frontend/src/components/ViewMaterialModal.jsx
 import React, { useState, useMemo } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
-import axios from 'axios';
-import { getAuthToken } from '../services/api';
+import { descargarActaMaterial } from '../services/materialService';
 import { Shield, FileText, Download, HardDrive, RefreshCw } from 'lucide-react';
 
 const ViewMaterialModal = ({ item, onClose }) => {
@@ -53,21 +52,10 @@ const ViewMaterialModal = ({ item, onClose }) => {
     setProcesandoPdf(true);
     try {
       const idMaterialBase = item._id || item.id;
-      const stringIdsSeleccionados = seleccionados.join(',');
 
-      const respuesta = await axios.get(`http://localhost:5000/api/materiales/${idMaterialBase}/documentar`, {
-        params: { 
-          tipo: tipoActa,
-          seleccionados: stringIdsSeleccionados 
-        },
-        responseType: 'blob',
-        headers: {
-          // 🔒 Token de sesión en memoria (ya no se guarda en localStorage/sessionStorage)
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
-      });
+      const pdfBlob = await descargarActaMaterial(idMaterialBase, tipoActa, seleccionados);
 
-      const blob = new Blob([respuesta.data], { type: 'application/pdf' });
+      const blob = new Blob([pdfBlob], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
       
@@ -98,7 +86,7 @@ const ViewMaterialModal = ({ item, onClose }) => {
       if (refreshGlobalData) refreshGlobalData();
     } catch (err) {
       console.error('Error al intentar descargar el acta filtrada:', err);
-      if (err.response?.status === 401) {
+      if (err.status === 401) {
         alert('Sesión expirada o no autorizada. Por favor, vuelve a iniciar sesión en el ERP.');
       } else {
         alert('Error en el servicio de procesamiento de documentación del servidor.');

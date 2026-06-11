@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import useForm from '../hooks/useForm';
 import { createMaterial } from '../services/materialService';
 
-const CreateMaterialModal = ({ isOpen, onClose, onCreated, trabajadores = [], telefonos = [] }) => {
+const CreateMaterialModal = ({ isOpen, onClose, onCreated, trabajadores = [] }) => {
   
   // 🟢 UNA ÚNICA DECLARACIÓN COHESIVA DE useForm
   const [values, handleChange, resetForm] = useForm({

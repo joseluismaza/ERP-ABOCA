@@ -40,10 +40,14 @@ export const deleteMaterial = async (id) => {
   return response;
 };
 
-export const descargarActaMaterial = async (materialId, tipo) => {
+export const descargarActaMaterial = async (materialId, tipo, seleccionados = []) => {
   // Al usar 'api', el token JWT se adjunta automáticamente en los headers
   const response = await api.get(`/materiales/${materialId}/documentar`, {
-    params: { tipo },
+    params: {
+      tipo,
+      // El backend espera una cadena de IDs separados por comas
+      seleccionados: seleccionados.join(',')
+    },
     responseType: 'blob' // Obligatorio para manejar la descarga de archivos binarios como PDF
   });
   return response.data;

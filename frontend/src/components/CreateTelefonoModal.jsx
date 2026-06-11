@@ -45,7 +45,7 @@ const CreateTelefonoModal = ({ isOpen, onClose, onCreated }) => {
           </div>
           <div className="flex flex-col"><label className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">Formato de SIM</label>
             <select name="tipoSIM" value={values.tipoSIM} onChange={handleChange} className="border border-slate-200 rounded-lg p-2 text-xs font-medium bg-white">
-              <option>eSIM</option><option>NanoSIM</option><option>MicroSIM</option><option>Física Estándar</option>
+              <option value="eSIM">eSIM</option><option value="SIM Física">SIM Física</option>
             </select>
           </div>
         </div>
