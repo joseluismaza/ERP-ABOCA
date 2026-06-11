@@ -32,9 +32,11 @@ export const login = catchAsync(async (req, res) => {
   }
 
   // 4. Creación del token de sesión firmado con caducidad mandatoria de 24 horas
+  // 🔒 JWT_SECRET es obligatorio (validado al arrancar en server.js), sin valor
+  // de respaldo: usar 'secret' permitiría a cualquiera firmar tokens válidos.
   const token = jwt.sign(
     { id: admin._id, username: admin.username, rol: admin.rol },
-    process.env.JWT_SECRET || 'secret',
+    process.env.JWT_SECRET,
     { expiresIn: '24h' }
   );
 

@@ -1,12 +1,6 @@
 import mongoose from 'mongoose';
 
 const telefonoSchema = new mongoose.Schema({
-  id: { 
-    type: String, 
-    required: [true, 'El identificador de activo es obligatorio'], 
-    unique: true,
-    trim: true
-  },
   numeroTelefono: { 
     type: String, 
     required: [true, 'El número telefónico de la línea es obligatorio'], 

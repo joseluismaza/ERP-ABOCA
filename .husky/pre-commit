@@ -1,0 +1,7 @@
+# Hook pre-commit — se ejecuta automáticamente antes de cada "git commit"
+# Si ESLint encuentra errores, el commit se cancela y se muestra el problema.
+
+echo "🔍 Ejecutando ESLint en el backend..."
+cd backend && npm run lint
+
+# Si el comando anterior falla (exit code != 0), git aborta el commit

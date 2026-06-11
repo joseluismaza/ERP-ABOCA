@@ -1,12 +1,7 @@
 import mongoose from 'mongoose';
+import { encrypt } from '../utils/crypto.js';
 
 const trabajadorSchema = new mongoose.Schema({
-  id: { 
-    type: String, 
-    required: [true, 'La identificación o código de empleado es requerida'], 
-    unique: true,
-    trim: true
-  },
   nombre: { type: String, required: true, trim: true },
   apellidos: { type: String, required: true, trim: true },
   dni: { type: String, required: true, unique: true, trim: true },
@@ -22,10 +17,13 @@ const trabajadorSchema = new mongoose.Schema({
   codigoZona: String,
   zona: String,
   username: { type: String, trim: true },
-  password: String,
+  // 🔒 select:false -> Trabajador.find()/findById() ya no incluyen este campo
+  // a no ser que se pida explícitamente con .select('+password')
+  password: { type: String, select: false },
   emailAboca: { type: String, trim: true, lowercase: true },
   appleID: { type: String, trim: true },
-  passwordApple: String,
+  // 🔒 Mismo tratamiento que 'password'
+  passwordApple: { type: String, select: false },
   poblacion: String,
   domicilio: String,
   estado: { 
@@ -41,7 +39,24 @@ const trabajadorSchema = new mongoose.Schema({
   nContable: Number
 }, { 
   timestamps: true, 
-  collection: 'trabajadores' 
+  collection: 'trabajadores',
+  // 🔒 Aunque un documento tenga password/passwordApple cargados en memoria
+  // (por ejemplo justo después de un .save()), nunca se incluyen al convertir
+  // el documento a JSON/objeto para enviarlo al frontend.
+  toJSON: {
+    transform: function (doc, ret) {
+      delete ret.password;
+      delete ret.passwordApple;
+      return ret;
+    }
+  },
+  toObject: {
+    transform: function (doc, ret) {
+      delete ret.password;
+      delete ret.passwordApple;
+      return ret;
+    }
+  }
 });
 
 /**

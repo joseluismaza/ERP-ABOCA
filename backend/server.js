@@ -1,6 +1,20 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// 🔒 Variables de entorno obligatorias para la seguridad del ERP.
+// Si falta alguna, detenemos el arranque con un mensaje claro en lugar de
+// dejar que el código siga funcionando con valores por defecto inseguros
+// (como ocurría antes con JWT_SECRET = 'secret').
+const variablesObligatorias = ['JWT_SECRET', 'PDF_OWNER_KEY'];
+const variablesFaltantes = variablesObligatorias.filter((nombre) => !process.env[nombre]);
+
+if (variablesFaltantes.length > 0) {
+  console.error(
+    `[Critical Error] Faltan variables de entorno obligatorias en .env: ${variablesFaltantes.join(', ')}.`
+  );
+  process.exit(1);
+}
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -62,7 +76,7 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos de inicio de sesión desde esta dirección. Por seguridad, intente de nuevo en 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV === 'development'
+  skip: (_req) => process.env.NODE_ENV === 'development'
 });
 
 app.use('/api', globalLimiter);

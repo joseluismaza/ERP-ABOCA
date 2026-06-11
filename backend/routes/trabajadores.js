@@ -8,7 +8,8 @@ import {
   updateTrabajador,
   deleteTrabajador,
   exportToExcel,
-  generarLlaveroCredencialesCifrado
+  generarLlaveroCredencialesCifrado,
+  revelarCredenciales
 } from '../controllers/trabajadorController.js';
 import { checkSMTPStatus } from '../controllers/sistemaController.js';
 
@@ -21,6 +22,9 @@ router.get('/smtp-status', checkSMTPStatus);
 
 router.post('/:id/credenciales', generarLlaveroCredencialesCifrado);
 router.post('/:id/credenciales-lote', generarLlaveroCredencialesCifrado);
+// 🔒 Revela password/passwordApple en texto claro, previa reconfirmación de la
+// contraseña del administrador autenticado.
+router.post('/:id/revelar-credenciales', revelarCredenciales);
 
 router.get('/', getAllTrabajadores);
 router.get('/:id', getTrabajadorById);

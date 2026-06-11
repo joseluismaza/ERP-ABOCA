@@ -64,3 +64,11 @@ export const descargarPDFHistorial = async (historialId) => {
   });
   return response.data;
 };
+
+// 🔒 Pide al backend las contraseñas reales (descifradas) de un trabajador.
+// Requiere reenviar la contraseña del administrador logueado para que el
+// servidor verifique su identidad antes de descifrar nada.
+export const revelarCredenciales = async (id, password) => {
+  const response = await api.post(`/trabajadores/${id}/revelar-credenciales`, { password });
+  return response.data;
+};

@@ -2,7 +2,9 @@
 import React, { useState, useMemo } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
 import axios from 'axios';
-import { FileText, Download, HardDrive, KeyRound, Eye, EyeOff, Globe, Mail, Landmark, Sliders } from 'lucide-react';
+import { revelarCredenciales as revelarCredencialesApi } from '../services/trabajadorService';
+import { getAuthToken } from '../services/api';
+import { FileText, Download, HardDrive, KeyRound, Globe, Mail, Landmark, Sliders } from 'lucide-react';
 
 const ViewTrabajadorModal = ({ item, onClose }) => {
   if (!item) return null;
@@ -11,10 +13,12 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
   const [procesandoPdf, setProcesandoPdf] = useState(false);
   const [confirmarPass, setConfirmarPass] = useState('');
   const [autorizadoCredenciales, setAutorizadoCredenciales] = useState(false);
+  const [verificandoPass, setVerificandoPass] = useState(false);
 
-  // Estados independientes para revelar contraseñas del expediente base mediante el ojo
-  const [verPasswordBase, setVerPasswordBase] = useState(false);
-  const [verPasswordApple, setVerPasswordApple] = useState(false);
+  // 🔒 Contraseñas reales (descifradas) del trabajador, obtenidas SOLO tras
+  // reconfirmar la contraseña del administrador. Mientras no se confirma,
+  // permanecen vacías: el backend nunca envía password/passwordApple por defecto.
+  const [credenciales, setCredenciales] = useState({ password: null, passwordApple: null });
 
   const { materiales = [] } = useGlobalData() || {};
 
@@ -27,28 +31,47 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
     });
   }, [item._id, item.id, materiales]);
 
-  // Filtrado de propiedades del esquema, incluyendo explícitamente password y passwordApple
+  // Filtrado de propiedades del esquema. password/passwordApple ya no llegan desde
+  // el backend (se ocultan siempre), pero se excluyen también aquí por si acaso.
   const camposLimpiosBBDD = useMemo(() => {
-    const ignorarCampos = ['_id', 'id', 'createdAt', 'updatedAt', '__v', 'salt'];
+    const ignorarCampos = ['_id', 'id', 'createdAt', 'updatedAt', '__v', 'salt', 'password', 'passwordApple'];
     return Object.entries(item).filter(([key]) => !ignorarCampos.includes(key));
   }, [item]);
 
-  // Desafío de seguridad: Re-autenticación de la sesión en caliente
+  // Cambia de pestaña y, si se sale de "credenciales", olvida las contraseñas
+  // descifradas que hubiera en memoria (hay que reconfirmar para volver a verlas).
+  const handleCambiarTab = (tab) => {
+    if (tab !== 'credenciales') {
+      setAutorizadoCredenciales(false);
+      setCredenciales({ password: null, passwordApple: null });
+      setConfirmarPass('');
+    }
+    setActiveTab(tab);
+  };
+
+
+  // Desafío de seguridad: Re-autenticación de la sesión en caliente.
+  // En una sola petición: el backend valida la contraseña del administrador y,
+  // si es correcta, descifra y devuelve las contraseñas reales del trabajador.
   const handleVerificarPassword = async (e) => {
     e.preventDefault();
+    setVerificandoPass(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/confirmar-password', {
-        password: confirmarPass
-      }, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}` }
-      });
+      const idTrabajador = item._id || item.id;
+      const datos = await revelarCredencialesApi(idTrabajador, confirmarPass);
 
+      setCredenciales({
+        password: datos.password,
+        passwordApple: datos.passwordApple
+      });
       setAutorizadoCredenciales(true);
     } catch (err) {
       console.error(err);
-      const mensajeError = err.response?.data?.error || 'Contraseña incorrecta o error de comunicación. Acceso denegado.';
+      const mensajeError = err.message || 'Contraseña incorrecta o error de comunicación. Acceso denegado.';
       alert(`❌ ${mensajeError}`);
       setConfirmarPass('');
+    } finally {
+      setVerificandoPass(false);
     }
   };
 
@@ -59,9 +82,10 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
       const idTrabajador = item._id || item.id;
       
       // 🛠️ CORRECCIÓN AQUÍ: Cambiado de /api/trabajadores a /api/trabajador para coincidir con el backend
+      // 🔒 Token de sesión en memoria (ya no se guarda en localStorage/sessionStorage)
       const respuesta = await axios.post(`http://localhost:5000/api/trabajador/${idTrabajador}/credenciales-lote`, {}, {
         responseType: 'blob',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
       });
 
       const blob = new Blob([respuesta.data], { type: 'application/pdf' });
@@ -101,8 +125,8 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
 
         {/* Sistema de Pestañas Nav */}
         <div className="flex border-b border-slate-100 bg-slate-50 text-xs font-bold">
-          <button onClick={() => setActiveTab('expediente')} className={`flex-1 py-3 text-center border-b-2 transition-all ${activeTab === 'expediente' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>📋 Expediente Laboral</button>
-          <button onClick={() => setActiveTab('credenciales')} className={`flex-1 py-3 text-center border-b-2 transition-all ${activeTab === 'credenciales' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>🔑 Credenciales del Ecosistema</button>
+          <button onClick={() => handleCambiarTab('expediente')} className={`flex-1 py-3 text-center border-b-2 transition-all ${activeTab === 'expediente' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>📋 Expediente Laboral</button>
+          <button onClick={() => handleCambiarTab('credenciales')} className={`flex-1 py-3 text-center border-b-2 transition-all ${activeTab === 'credenciales' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>🔑 Credenciales del Ecosistema</button>
         </div>
 
         {/* Contenido Dinámico */}
@@ -113,34 +137,6 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
               {/* Grid de Datos del Expediente */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {camposLimpiosBBDD.map(([clave, valor]) => {
-                  const esPasswordComun = clave === 'password';
-                  const esPasswordApple = clave === 'passwordApple';
-
-                  if (esPasswordComun || esPasswordApple) {
-                    const revelado = esPasswordComun ? verPasswordBase : verPasswordApple;
-                    const setRevelado = esPasswordComun ? setVerPasswordBase : setVerPasswordApple;
-
-                    return (
-                      <div key={clave} className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs flex justify-between items-center">
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[9px] font-black text-indigo-600 uppercase block tracking-wider mb-0.5">
-                            {esPasswordComun ? 'Contraseña Sistema (password)' : 'Contraseña Apple ID (passwordApple)'}
-                          </span>
-                          <span className="text-xs font-mono font-bold text-slate-700 truncate block">
-                            {revelado ? String(valor || 'N/A') : '••••••••••••'}
-                          </span>
-                        </div>
-                        <button 
-                          type="button" 
-                          onClick={() => setRevelado(!revelado)}
-                          className="p-1.5 ml-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
-                        >
-                          {revelado ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
-                      </div>
-                    );
-                  }
-
                   return (
                     <div key={clave} className="bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
                       <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider mb-0.5">{clave}</span>
@@ -193,7 +189,9 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     onChange={(e) => setConfirmarPass(e.target.value)}
                     className="w-full p-2.5 text-xs font-bold border border-slate-200 bg-white rounded-xl text-center focus:outline-indigo-600 shadow-inner"
                 />
-                <button type="submit" className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-black rounded-xl transition-colors shadow-sm">Validar Identidad</button>
+                <button type="submit" disabled={verificandoPass} className="w-full py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white text-xs font-black rounded-xl transition-colors shadow-sm">
+                  {verificandoPass ? 'Verificando...' : 'Validar Identidad'}
+                </button>
                 </form>
             ) : (
                 <div className="space-y-3">
@@ -213,7 +211,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     <h5 className="text-xs font-black text-slate-800 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-blue-500" /> Office365 & Mail</h5>
                     <div className="text-[11px] space-y-0.5">
                         <p className="text-slate-500 font-medium">Usuario: <span className="font-bold text-slate-700">{item.emailAboca || 'N/A'}</span></p>
-                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-700">{item.password || 'N/A'}</span></p>
+                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-700">{credenciales.password || 'N/A'}</span></p>
                     </div>
                     </div>
 
@@ -248,7 +246,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     <div className="text-[11px] space-y-0.5">
                         <p className="text-[9px] text-slate-400 font-mono">HostName: Interno ERP</p>
                         <p className="text-slate-500 font-medium">Usuario: <span className="font-mono font-bold text-slate-800 uppercase">{String(item.username || '').toUpperCase() || 'N/A'}</span></p>
-                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-800 uppercase">{String(item.password || '').toUpperCase() || 'N/A'}</span></p>
+                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-800 uppercase">{String(credenciales.password || '').toUpperCase() || 'N/A'}</span></p>
                     </div>
                     </div>
 
@@ -258,7 +256,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     <div className="text-[11px] space-y-0.5">
                         <p className="text-[9px] text-teal-600 font-bold truncate block">webreport.aboca.dom</p>
                         <p className="text-slate-500 font-medium">Usuario: <span className="font-mono font-bold text-slate-800 uppercase">{String(item.username || '').toUpperCase() || 'N/A'}</span></p>
-                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-800 uppercase">{String(item.password || '').toUpperCase() || 'N/A'}</span></p>
+                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-800 uppercase">{String(credenciales.password || '').toUpperCase() || 'N/A'}</span></p>
                     </div>
                     </div>
 
@@ -267,7 +265,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     <h5 className="text-xs font-black text-slate-800 flex items-center gap-1.5"><KeyRound className="w-3.5 h-3.5 text-purple-500" /> ABOCA MANAGER</h5>
                     <div className="text-[11px] space-y-0.5">
                         <p className="text-slate-500 font-medium">Usuario: <span className="font-mono font-bold text-slate-800 uppercase">{String(item.username || '').toUpperCase() || 'N/A'}</span></p>
-                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-800 uppercase">{String(item.password || '').toUpperCase() || 'N/A'}</span></p>
+                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-800 uppercase">{String(credenciales.password || '').toUpperCase() || 'N/A'}</span></p>
                     </div>
                     </div>
 
@@ -277,7 +275,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     <div className="text-[11px] space-y-0.5">
                         <p className="text-[9px] text-cyan-600 font-bold truncate block">reporting.aboca.dom</p>
                         <p className="text-slate-500 font-medium">Usuario: <span className="font-bold text-slate-700">{item.emailAboca || 'N/A'}</span></p>
-                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-700">{item.password || 'N/A'}</span></p>
+                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-700">{credenciales.password || 'N/A'}</span></p>
                     </div>
                     </div>
 
@@ -286,7 +284,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     <h5 className="text-xs font-black text-slate-800 flex items-center gap-1.5">🍏 Apple ID & Terminales</h5>
                     <div className="text-[11px] space-y-0.5">
                         <p className="text-slate-500 font-medium">Apple ID: <span className="font-bold text-slate-700">{item.appleID || 'N/A'}</span></p>
-                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-700">{item.passwordApple || 'N/A'}</span></p>
+                        <p className="text-slate-500 font-medium">Contraseña: <span className="font-mono font-bold text-slate-700">{credenciales.passwordApple || 'N/A'}</span></p>
                         <div className="mt-1 pt-1 border-t border-slate-100 grid grid-cols-2 gap-1 text-[11px] text-slate-400 font-mono">
                         <p>PIN iPhone: <span className="text-slate-700 font-bold">{item.pinIphone || 'N/A'}</span></p>
                         <p>PIN iPad: <span className="text-slate-700 font-bold">{item.pinIpad || 'N/A'}</span></p>

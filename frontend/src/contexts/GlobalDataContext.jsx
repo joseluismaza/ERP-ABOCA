@@ -33,15 +33,6 @@ export const GlobalDataProvider = ({ children }) => {
     setError(null);
 
     try {
-      // Extraemos el token del almacenamiento local para las cabeceras Bearer de seguridad
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      };
-
       /**
        * ARQUITECTURA EFICIENTE: Peticiones paralelas mediante Promise.allSettled.
        * Si un módulo falla (ej. telefonos da error), el sistema no tumba el Dashboard completo,

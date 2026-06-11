@@ -1,16 +1,16 @@
 // backend/controllers/trabajadorController.js
 import Trabajador from "../models/Trabajador.js";
 import Historial from '../models/Historial.js';
+import Admin from '../models/Admin.js';
 import { catchAsync } from '../middleware/errorHandler.js';
 import ExcelJS from 'exceljs';
+import bcrypt from 'bcryptjs';
 import { enviarCredencialesSeguras } from "../services/onboardingService.js";
-import { generarActaMaterial } from '../services/materialesDocumentService.js';
-import { StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
-import { decrypt } from "../utils/crypto.js";
+import { encrypt, decrypt } from "../utils/crypto.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,7 +60,9 @@ export const createTrabajador = catchAsync(async (req, res) => {
 
   const trabajador = await nuevoTrabajador.save();
 
-  let observacionesOnboarding = '';
+  // Se declara sin valor inicial: tanto el bloque try como el catch la asignan
+  // siempre antes de usarla en el Historial.create() de más abajo.
+  let observacionesOnboarding;
   try {
     await enviarCredencialesSeguras(trabajador);
     observacionesOnboarding = `Alta operacional del trabajador: ${trabajador.nombre} ${trabajador.apellidos}. Kit digital de credenciales generado con éxito, cifrado con DNI y despachado por correo.`;
@@ -85,9 +87,21 @@ export const updateTrabajador = catchAsync(async (req, res) => {
     return res.status(404).json({ error: 'El trabajador solicitado no existe.' });
   }
 
+  // 🔒 findByIdAndUpdate NO ejecuta el hook pre('save') que cifra password/passwordApple,
+  // así que si el formulario envía una contraseña nueva en texto plano la ciframos aquí
+  // antes de guardarla. Si el campo llega vacío o no llega, no se toca (no se sobrescribe
+  // la contraseña ya guardada).
+  const datosActualizados = { ...req.body };
+  if (datosActualizados.password) {
+    datosActualizados.password = encrypt(datosActualizados.password);
+  }
+  if (datosActualizados.passwordApple) {
+    datosActualizados.passwordApple = encrypt(datosActualizados.passwordApple);
+  }
+
   const trabajador = await Trabajador.findByIdAndUpdate(
     req.params.id, 
-    req.body, 
+    datosActualizados, 
     { new: true, runValidators: true }
   );
 
@@ -219,8 +233,8 @@ export const exportToExcel = catchAsync(async (req, res) => {
 export const generarLlaveroCredencialesCifrado = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  // 1. Obtener datos del trabajador
-  const trabajador = await Trabajador.findById(id);
+  // 1. Obtener datos del trabajador (incluyendo password/passwordApple, ocultos por defecto)
+  const trabajador = await Trabajador.findById(id).select('+password +passwordApple');
   if (!trabajador) {
     return res.status(404).json({ error: 'El trabajador seleccionado no existe en la compañía.' });
   }
@@ -249,7 +263,10 @@ export const generarLlaveroCredencialesCifrado = catchAsync(async (req, res) => 
     size: 'A4',
     margin: 40,
     userPassword: passwordCifradoPDF, // 🔒 Forzar ingreso de DNI obligatoriamente
-    ownerPassword: process.env.JWT_SECRET || 'MasterERPKeyAboca',
+    // 🔒 Contraseña de propietario del PDF: variable dedicada PDF_OWNER_KEY
+    // (obligatoria, validada al arrancar en server.js). Antes reutilizaba
+    // JWT_SECRET con un valor de respaldo hardcodeado ('MasterERPKeyAboca').
+    ownerPassword: process.env.PDF_OWNER_KEY,
     permissions: {
       printing: 'highResolution',
       modifying: false,
@@ -329,18 +346,36 @@ export const generarLlaveroCredencialesCifrado = catchAsync(async (req, res) => 
     doc.moveDown(0.8);
   };
 
+  // 🔒 Descifrado de las contraseñas reales. Se hace UNA sola vez aquí y se
+  // reutiliza en todos los sistemas, en vez de mostrar trabajador.password
+  // (que en BBDD está cifrado) directamente en algunas tarjetas como pasaba antes.
+  let passwordDescifrada = null;
+  let passwordAppleDescifrada = null;
+
+  try {
+    passwordDescifrada = decrypt(trabajador.password);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar password del trabajador:', err.message);
+  }
+
+  try {
+    passwordAppleDescifrada = decrypt(trabajador.passwordApple);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar passwordApple del trabajador:', err.message);
+  }
+
   // Renderizado de los 8 sistemas
-  appendSystem('1. Office365 & Mail', trabajador.emailAboca, decrypt(trabajador.password));
+  appendSystem('1. Office365 & Mail', trabajador.emailAboca, passwordDescifrada);
   appendSystem('2. CYTRIC – Reserva de Billetes / Hoteles', trabajador.emailAboca, 'Aboca02+', 'URL: https://amadeus.cytric.net/env-b/ibe/?system=ama-nautalia-grupoaboca');
   appendSystem('3. Incidencias ServiceTonic (Por confirmar)', codComercialLimpio, '12345678', 'URL: https://aboca.myservicetonic.com/ServiceTonic/login.jsf');
-  appendSystem('4. ORDINI (Por confirmar)', String(trabajador.username || '').toUpperCase(), String(trabajador.password || '').toUpperCase(), 'HostName:');
-  appendSystem('5. WEBREPORT', String(trabajador.username || '').toUpperCase(), String(trabajador.password || '').toUpperCase(), 'URL: http://webreport.aboca.dom');
-  appendSystem('6. ABOCA MANAGER', String(trabajador.username || '').toUpperCase(), String(trabajador.password || '').toUpperCase());
-  appendSystem('7. Aboca Reporting', trabajador.emailAboca, trabajador.password, 'URL: https://reporting.aboca.dom/');
+  appendSystem('4. ORDINI (Por confirmar)', String(trabajador.username || '').toUpperCase(), String(passwordDescifrada || '').toUpperCase(), 'HostName:');
+  appendSystem('5. WEBREPORT', String(trabajador.username || '').toUpperCase(), String(passwordDescifrada || '').toUpperCase(), 'URL: http://webreport.aboca.dom');
+  appendSystem('6. ABOCA MANAGER', String(trabajador.username || '').toUpperCase(), String(passwordDescifrada || '').toUpperCase());
+  appendSystem('7. Aboca Reporting', trabajador.emailAboca, passwordDescifrada, 'URL: https://reporting.aboca.dom/');
   
   const pinIphone = trabajador.pinIphone || 'N/A';
   const pinIpad = trabajador.pinIpad || 'N/A';
-  appendSystem('8. Apple ID & Terminales Movilidad', trabajador.appleID, decrypt(trabajador.passwordApple), `PIN iPhone: ${pinIphone}   |   PIN iPad: ${pinIpad}   |   PIN Desbloqueo General: 110303`);
+  appendSystem('8. Apple ID & Terminales Movilidad', trabajador.appleID, passwordAppleDescifrada, `PIN iPhone: ${pinIphone}   |   PIN iPad: ${pinIpad}   |   PIN Desbloqueo General: 110303`);
 
   // Footer de seguridad
   doc.moveDown(0.5);
@@ -351,4 +386,67 @@ export const generarLlaveroCredencialesCifrado = catchAsync(async (req, res) => 
 
   // Concluimos la escritura en el documento. Esto disparará automáticamente el evento 'end' configurado arriba.
   doc.end();
+});
+
+/**
+ * 🔒 POST /api/trabajadores/:id/revelar-credenciales
+ * @desc   Revela en texto claro las contraseñas (password / passwordApple) de un trabajador,
+ *         que en la base de datos permanecen siempre cifradas (AES-256-GCM).
+ *         Para ello, el administrador que hace la petición debe reenviar SU PROPIA
+ *         contraseña de acceso al ERP en el cuerpo de la petición. El servidor:
+ *           1. Verifica esa contraseña contra el hash del administrador autenticado.
+ *           2. Si es correcta, descifra y devuelve password/passwordApple del trabajador.
+ *         Si la contraseña del administrador es incorrecta, no se descifra ni se
+ *         devuelve nada.
+ * @access Private (token JWT obligatorio, aplicado por el router)
+ */
+export const revelarCredenciales = catchAsync(async (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ error: 'Debes reintroducir tu contraseña de administrador para revelar las credenciales.' });
+  }
+
+  // 1. Identificamos al administrador autenticado a partir del token JWT
+  const adminId = req.user.id || req.user._id;
+  const administrador = await Admin.findById(adminId);
+
+  if (!administrador) {
+    return res.status(404).json({ error: 'El administrador de la sesión actual no existe en el sistema.' });
+  }
+
+  // 2. Verificamos que la contraseña reenviada coincide con la del administrador
+  const passwordValido = await bcrypt.compare(password, administrador.password);
+  if (!passwordValido) {
+    return res.status(401).json({ error: 'Contraseña de confirmación incorrecta. Acceso denegado.' });
+  }
+
+  // 3. Recuperamos el trabajador, pidiendo explícitamente los campos cifrados (ocultos por defecto)
+  const trabajador = await Trabajador.findById(req.params.id).select('+password +passwordApple');
+  if (!trabajador) {
+    return res.status(404).json({ error: 'El trabajador solicitado no existe.' });
+  }
+
+  // 4. Descifrado seguro: si algún valor está vacío o no es descifrable, devolvemos null
+  // en lugar de romper toda la petición.
+  let passwordDescifrada = null;
+  let passwordAppleDescifrada = null;
+
+  try {
+    passwordDescifrada = decrypt(trabajador.password);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar password del trabajador:', err.message);
+  }
+
+  try {
+    passwordAppleDescifrada = decrypt(trabajador.passwordApple);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar passwordApple del trabajador:', err.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    password: passwordDescifrada,
+    passwordApple: passwordAppleDescifrada
+  });
 });

@@ -10,13 +10,25 @@ const api = axios.create({
   },
 });
 
+// 🔒 Token de sesión guardado SOLO en memoria (variable de este módulo), nunca
+// en localStorage/sessionStorage. Si un script no autorizado se ejecutara en la
+// página (XSS), no podría leer el token desde el almacenamiento del navegador.
+// Contrapartida: al recargar la página o cerrar la pestaña, el token se pierde
+// y el usuario debe volver a iniciar sesión.
+let authToken = null;
+
+export const setAuthToken = (token) => {
+  authToken = token;
+};
+
+export const getAuthToken = () => authToken;
+
 // Interceptor de Peticiones: Inyección dinámica del Token Bearer
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    if (authToken) {
       // Formateo estándar RFC 6750 para la transmisión de JSON Web Tokens
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${authToken}`;
     }
     return config;
   },
@@ -31,7 +43,7 @@ api.interceptors.response.use(
   (error) => {
     // Caso de uso crítico: El token ha expirado o ha sido manipulado en el cliente
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      localStorage.removeItem('token');
+      authToken = null;
       
       // Evitamos romper el árbol de React forzando una recarga limpia hacia la raíz de acceso
       if (!window.location.pathname.includes('/login')) {

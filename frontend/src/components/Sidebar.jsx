@@ -40,7 +40,7 @@ const Sidebar = () => {
 
   // Manejador del botón de salida segura del sistema
   const handleLogout = useCallback(() => {
-    logout(); // Limpia el estado global y borra tokens del localStorage
+    logout(); // Limpia el estado global y el token de sesión en memoria
     setDropdownOpen(false);
     closeSidebar();
     navigate('/login'); // Redirección al control de acceso de seguridad

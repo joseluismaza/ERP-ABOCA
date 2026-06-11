@@ -1,6 +1,5 @@
 import Material from '../models/Material.js';
 import Historial from '../models/Historial.js';
-import Trabajador from '../models/Trabajador.js';
 import { catchAsync } from '../middleware/errorHandler.js';
 import { generarActaMaterial } from '../services/materialesDocumentService.js';
 import ExcelJS from 'exceljs';
@@ -105,7 +104,7 @@ export const deleteMaterial = catchAsync(async (req, res) => {
   await Historial.create({
     tipoOperacion: 'delete',
     elementoTipo: 'Material',
-    elementoId: materialId, 
+    elementoId: material._id, 
     observaciones: `🚨 ELIMINACIÓN DE ACTIVO IRREVERSIBLE: El hardware [${material.marca} ${material.modelo}] con S/N: [${material.sn || 'N/A'}] fue purgado permanentemente del inventario operativo.`
   });
 

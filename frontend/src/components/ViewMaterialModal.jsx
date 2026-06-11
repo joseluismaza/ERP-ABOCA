@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
 import axios from 'axios';
+import { getAuthToken } from '../services/api';
 import { Shield, FileText, Download, HardDrive, RefreshCw } from 'lucide-react';
 
 const ViewMaterialModal = ({ item, onClose }) => {
@@ -61,7 +62,8 @@ const ViewMaterialModal = ({ item, onClose }) => {
         },
         responseType: 'blob',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+          // 🔒 Token de sesión en memoria (ya no se guarda en localStorage/sessionStorage)
+          'Authorization': `Bearer ${getAuthToken()}`
         }
       });
 

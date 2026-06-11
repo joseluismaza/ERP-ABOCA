@@ -2,6 +2,7 @@
 import pdf from 'pdfjs';
 import nodemailer from 'nodemailer';
 import Helvetica from 'pdfjs/font/Helvetica.js'
+import { decrypt } from '../utils/crypto.js';
 
 /**
  * Genera un PDF cifrado con las credenciales y lo envía por correo electrónico al trabajador.
@@ -28,7 +29,9 @@ export const enviarCredencialesSeguras = async (trabajador) => {
     // Usamos el DNI/NIE en mayúsculas y sin espacios como contraseña de apertura (userPassword)
     encryption: {
       userPassword: trabajador.dni.trim().toUpperCase(),
-      ownerPassword: process.env.PDF_OWNER_KEY || 'SuperAdminErpAboca2026',
+      // 🔒 PDF_OWNER_KEY es obligatoria (validada al arrancar en server.js),
+      // sin valor de respaldo hardcodeado.
+      ownerPassword: process.env.PDF_OWNER_KEY,
       permissions: {
         print: true,
         modify: false,
@@ -36,6 +39,24 @@ export const enviarCredencialesSeguras = async (trabajador) => {
       }
     }
   });
+
+  // 🔒 Descifrado de las contraseñas reales. trabajador.password/passwordApple
+  // están cifrados en BBDD (AES-256-GCM); si se incluyeran tal cual en el PDF,
+  // el empleado recibiría texto cifrado ilegible en vez de su contraseña real.
+  let passwordDescifrada = null;
+  let passwordAppleDescifrada = null;
+
+  try {
+    passwordDescifrada = decrypt(trabajador.password);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar password del trabajador:', err.message);
+  }
+
+  try {
+    passwordAppleDescifrada = decrypt(trabajador.passwordApple);
+  } catch (err) {
+    console.error('⚠️ Error al descifrar passwordApple del trabajador:', err.message);
+  }
 
   // 3. Diseñar el contenido estético del PDF corporativo
   // Encabezado
@@ -49,13 +70,13 @@ export const enviarCredencialesSeguras = async (trabajador) => {
   doc.cell({ paddingBottom: 5 }).text('💻 COMPUTACIÓN Y CUENTA CORPORATIVA ABOCA', { fontSize: 12, bold: true, color: 0x4f46e5 });
   doc.text(`• Correo Electrónico: ${trabajador.emailAboca || 'No asignado'}`, { fontSource: 'monospace' });
   doc.text(`• Nombre de Usuario: ${trabajador.username || 'No asignado'}`, { fontSource: 'monospace' });
-  doc.cell({ paddingBottom: 15 }).text(`• Contraseña Inicial: ${trabajador.password || 'Inalterada / Protegida'}`, { fontSource: 'monospace' });
+  doc.cell({ paddingBottom: 15 }).text(`• Contraseña Inicial: ${passwordDescifrada || 'Inalterada / Protegida'}`, { fontSource: 'monospace' });
 
   // Bloque de Cuenta Apple (Si dispone de ella)
   if (trabajador.appleID) {
     doc.cell({ paddingBottom: 5 }).text('🍏 ENTORNO MÓVIL (ID DE APPLE CORPORATIVO)', { fontSize: 12, bold: true, color: 0xd97706 });
     doc.text(`• Apple ID: ${trabajador.appleID}`, { fontSource: 'monospace' });
-    doc.cell({ paddingBottom: 15 }).text(`• Contraseña Apple: ${trabajador.passwordApple || 'Establecida'}`, { fontSource: 'monospace' });
+    doc.cell({ paddingBottom: 15 }).text(`• Contraseña Apple: ${passwordAppleDescifrada || 'Establecida'}`, { fontSource: 'monospace' });
   }
 
   // Pie de página de confidencialidad

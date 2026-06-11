@@ -13,7 +13,9 @@ export const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Acceso denegado. Token de autenticación no suministrado.' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, decodedUser) => {
+  // 🔒 JWT_SECRET es obligatorio (validado al arrancar en server.js), sin valor
+  // de respaldo: usar 'secret' permitiría a cualquiera firmar tokens válidos.
+  jwt.verify(token, process.env.JWT_SECRET, (err, decodedUser) => {
     if (err) {
       return res.status(403).json({ error: 'Token inválido, expirado o alterado.' });
     }
