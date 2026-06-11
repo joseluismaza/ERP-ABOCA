@@ -50,14 +50,14 @@ const handleSubmit = async (e) => {
     setErrorMsg('');
     
     try {
-      // Forzamos que 'id' y '_id' viajen en el objeto enviado al backend
+      // El identificador del trabajador es el _id nativo de MongoDB
+      // (el campo "id" manual se eliminó del esquema por ser redundante con _id)
       const payload = {
         ...formData,
-        id: trabajador.id,   // Código de empleado original (ej: "1000003415" o el que tenga)
-        _id: trabajador._id // ID nativo de MongoDB
+        _id: trabajador._id
       };
 
-      await updateTrabajador(trabajador._id || trabajador.id, payload);
+      await updateTrabajador(trabajador._id, payload);
       
       if (onUpdated) await onUpdated();
       onClose();

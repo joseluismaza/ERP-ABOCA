@@ -41,8 +41,33 @@ import telefonoRoutes from './routes/telefonos.js';
 import historialRoutes from './routes/historial.js';
 import sistemaRoutes from './routes/sistemaRoutes.js';
 
+// 🔒 FRONTEND_URL puede contener varias URLs separadas por comas, por ejemplo:
+// FRONTEND_URL=https://erp-aboca.vercel.app,http://localhost:3000
+// Esto permite tener a la vez el frontend de producción y el de desarrollo local.
+// Se normaliza quitando barras finales ("/"), porque el navegador nunca envía
+// esa barra en la cabecera Origin (https://ejemplo.com/ !== https://ejemplo.com).
+const origenesPermitidos = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((url) => url.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Peticiones sin cabecera Origin (ej. Postman, curl, llamadas servidor a servidor)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const origenNormalizado = origin.replace(/\/+$/, '');
+    if (origenesPermitidos.includes(origenNormalizado)) {
+      return callback(null, true);
+    }
+
+    console.warn(
+      `[CORS] Origen bloqueado: "${origin}". Orígenes permitidos: ${origenesPermitidos.join(', ')}`
+    );
+    callback(new Error('No permitido por la política CORS de este servidor.'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

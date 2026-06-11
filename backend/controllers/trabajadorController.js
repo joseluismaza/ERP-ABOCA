@@ -54,10 +54,6 @@ export const getTrabajadorById = catchAsync(async (req, res) => {
 export const createTrabajador = catchAsync(async (req, res) => {
   const nuevoTrabajador = new Trabajador(req.body);
 
-  if (!nuevoTrabajador.id) {
-    nuevoTrabajador.id = nuevoTrabajador._id.toString();
-  }
-
   const trabajador = await nuevoTrabajador.save();
 
   // Se declara sin valor inicial: tanto el bloque try como el catch la asignan
