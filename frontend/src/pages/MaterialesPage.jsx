@@ -337,7 +337,6 @@ const MaterialesPage = () => {
         <Table 
           columns={columns} 
           data={currentItems} 
-          loading={loading?.materiales} 
           actions={(row) => (
             <div className="flex items-center gap-1">
               <button onClick={() => setSelectedMaterial(row)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors" title="Ver Detalles Computados"><Eye className="w-4 h-4" /></button>
@@ -357,7 +356,7 @@ const MaterialesPage = () => {
         </div>
       )}
 
-      <CreateMaterialModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={reloadGlobalData} trabajadores={trabajadores} telefonos={telefonos} />
+      <CreateMaterialModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={reloadGlobalData} trabajadores={trabajadores} />
       {editingMaterial && <EditMaterialModal isOpen={!!editingMaterial} onClose={() => setEditingMaterial(null)} material={editingMaterial} onUpdated={reloadGlobalData} trabajadores={trabajadores} telefonos={telefonos} />}
       {selectedMaterial && <ViewMaterialModal item={selectedMaterial} onClose={() => setSelectedMaterial(null)} />}
       <ScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onDetected={(code) => { setFilterQuery(code); setIsScannerOpen(false); }} />

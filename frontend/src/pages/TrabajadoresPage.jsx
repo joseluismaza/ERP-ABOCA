@@ -390,10 +390,7 @@ const TrabajadoresPage = () => {
                 {/* Botonera Operativa */}
                 <div className="flex gap-2 pt-2 border-t border-slate-100">
                   <button
-                    onClick={() => setSelectedTrabajador({
-                      ...t,
-                      telefonoAsignado: telefonoAsignado || null
-                    })}
+                    onClick={() => setSelectedTrabajador(t)}
                     title="Ver detalles"
                     className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-bold text-sm transition-colors flex justify-center items-center"
                   >

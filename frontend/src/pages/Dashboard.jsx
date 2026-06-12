@@ -77,31 +77,36 @@ const Dashboard = () => {
     // Cruzado desde Trabajadores
     matchedTrabajadores.forEach(t => {
       materiales.forEach(m => {
-        if (m.asignadoA === t._id || m.asignadoA?._id === t._id) expandedMaterialIds.add(m._id);
+        const idTrabajadorMaterial = m.TrabajadorId?._id || m.TrabajadorId;
+        if (idTrabajadorMaterial && String(idTrabajadorMaterial) === String(t._id)) expandedMaterialIds.add(m._id);
       });
       telefonos.forEach(p => {
-        if (p.asignadoA === t._id || p.asignadoA?._id === t._id) expandedTelefonoIds.add(p._id);
+        const idTrabajadorTelefono = p.TrabajadorId?._id || p.TrabajadorId;
+        if (idTrabajadorTelefono && String(idTrabajadorTelefono) === String(t._id)) expandedTelefonoIds.add(p._id);
       });
     });
 
     // Cruzado desde Materiales
     matchedMateriales.forEach(m => {
-      const targetEmpId = m.asignadoA?._id || m.asignadoA;
+      const targetEmpId = m.TrabajadorId?._id || m.TrabajadorId;
       if (targetEmpId) expandedTrabajadorIds.add(targetEmpId);
-      if (m.numeroTelefono) {
-        const telMatch = telefonos.find(p => p.numeroTelefono === m.numeroTelefono);
-        if (telMatch) expandedTelefonoIds.add(telMatch._id);
-      }
+
+      // m.telefonoId es una referencia al _id del Telefono vinculado (no un número de teléfono)
+      const idTelefonoMaterial = m.telefonoId?._id || m.telefonoId;
+      if (idTelefonoMaterial) expandedTelefonoIds.add(idTelefonoMaterial);
     });
 
     // Cruzado desde Teléfonos
     matchedTelefonos.forEach(p => {
-      const targetEmpId = p.asignadoA?._id || p.asignadoA;
+      const targetEmpId = p.TrabajadorId?._id || p.TrabajadorId;
       if (targetEmpId) expandedTrabajadorIds.add(targetEmpId);
-      if (p.numeroTelefono) {
-        const matMatch = materiales.find(m => m.numeroTelefono === p.numeroTelefono);
-        if (matMatch) expandedMaterialIds.add(matMatch._id);
-      }
+
+      // Buscamos el material (si existe) cuyo telefonoId apunte a esta línea
+      const matMatch = materiales.find(m => {
+        const idTelefonoMaterial = m.telefonoId?._id || m.telefonoId;
+        return idTelefonoMaterial && String(idTelefonoMaterial) === String(p._id);
+      });
+      if (matMatch) expandedMaterialIds.add(matMatch._id);
     });
 
     return {
@@ -184,7 +189,7 @@ const Dashboard = () => {
         {scannerOpen && (
           <div className="mt-6 max-w-xl mx-auto border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden p-4 bg-gray-50">
             <Suspense fallback={<div className="text-center py-6 text-sm text-gray-500 animate-pulse">Inicializando cámara...</div>}>
-              <ZXingScanner onScanSuccess={handleScanSuccess} />
+              <ZXingScanner onDetected={handleScanSuccess} onClose={() => setScannerOpen(false)} />
             </Suspense>
           </div>
         )}
@@ -252,7 +257,7 @@ const Dashboard = () => {
               </div>
               <div className="divide-y divide-gray-100">
                 {searchResults.materiales.map(m => {
-                  const portador = trabajadores.find(t => t._id === (m.asignadoA?._id || m.asignadoA));
+                  const portador = trabajadores.find(t => t._id === (m.TrabajadorId?._id || m.TrabajadorId));
                   return (
                     <div key={m._id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/50">
                       <div className="space-y-1.5">
@@ -284,7 +289,7 @@ const Dashboard = () => {
               </div>
               <div className="divide-y divide-gray-100">
                 {searchResults.telefonos.map(p => {
-                  const titular = trabajadores.find(t => t._id === (p.asignadoA?._id || p.asignadoA));
+                  const titular = trabajadores.find(t => t._id === (p.TrabajadorId?._id || p.TrabajadorId));
                   return (
                     <div key={p._id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/50">
                       <div className="space-y-1">

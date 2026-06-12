@@ -1,6 +1,7 @@
 // frontend/src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { setAuthToken } from '../services/api';
+import { dataCache } from '../utils/dataCache';
 
 // Creación del contexto de autenticación nativo
 const AuthContext = createContext(null);
@@ -42,11 +43,15 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Método de cierre de sesión: borra el token en memoria y el usuario del estado.
+   * Método de cierre de sesión: borra el token en memoria, el usuario del
+   * estado, y la caché de datos (trabajadores/materiales/teléfonos) para que
+   * no queden visibles datos de esta sesión si otra persona inicia sesión
+   * después en el mismo navegador.
    */
   const logout = useCallback(() => {
     setAuthToken(null);
     setUser(null);
+    dataCache.clearAll();
   }, []);
 
   return (

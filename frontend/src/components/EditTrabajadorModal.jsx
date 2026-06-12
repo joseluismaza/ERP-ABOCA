@@ -4,8 +4,6 @@ import { useAuth } from '../contexts/AuthContext'; // Ajusta la ruta a tu contex
 import { updateTrabajador } from '../services/trabajadorService'; // Ajusta la ruta a tu servicio de API
 
 const EditTrabajadorModal = ({ isOpen, onClose, trabajador, onUpdated }) => {
-  if (!isOpen || !trabajador) return null;
-
   const { user } = useAuth() || {};
   const isAdmin = user?.rol === 'admin' || user?.isAdmin === true;
 
@@ -27,6 +25,9 @@ const EditTrabajadorModal = ({ isOpen, onClose, trabajador, onUpdated }) => {
 
   // Carga inicial y mapeo de datos del trabajador seleccionado al estado local
   useEffect(() => {
+    // Si el modal está cerrado todavía no llega ningún trabajador: no hay nada que mapear
+    if (!trabajador) return;
+
     setFormData({
       ...trabajador,
       fechaNacimiento: formatInputDate(trabajador.fechaNacimiento),
@@ -35,6 +36,12 @@ const EditTrabajadorModal = ({ isOpen, onClose, trabajador, onUpdated }) => {
     });
     setErrorMsg('');
   }, [trabajador]);
+
+  // 🔒 Este return condicional debe ir DESPUÉS de declarar todos los hooks:
+  // los hooks de React deben llamarse siempre en el mismo orden en cada
+  // renderizado. Si fuera antes, React lanzaría "Rendered fewer/more hooks
+  // than during the previous render" al abrir/cerrar el modal.
+  if (!isOpen || !trabajador) return null;
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

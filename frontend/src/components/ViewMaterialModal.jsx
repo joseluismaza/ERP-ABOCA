@@ -5,41 +5,39 @@ import { descargarActaMaterial } from '../services/materialService';
 import { Shield, FileText, Download, HardDrive, RefreshCw } from 'lucide-react';
 
 const ViewMaterialModal = ({ item, onClose }) => {
-  if (!item) return null;
-
   const [activeTab, setActiveTab] = useState('expediente'); 
   const [procesandoPdf, setProcesandoPdf] = useState(false);
   const { trabajadores = [], materiales = [], refreshGlobalData } = useGlobalData() || {};
-  const [seleccionados, setSeleccionados] = useState([item._id]);
+  const [seleccionados, setSeleccionados] = useState(item ? [item._id] : []);
 
   // Resolvemos el trabajador asignado activo actual
   const trabajadorAsignado = useMemo(() => {
-    if (!item.TrabajadorId) return null;
+    if (!item?.TrabajadorId) return null;
     const id = item.TrabajadorId._id || item.TrabajadorId;
     return trabajadores.find(t => t._id === id);
-  }, [item.TrabajadorId, trabajadores]);
+  }, [item?.TrabajadorId, trabajadores]);
 
   // Resolvemos el último trabajador histórico que devolvió este equipo (si aplica)
   const ultimoTrabajador = useMemo(() => {
-    if (!item.ultimoTrabajadorId) return null;
+    if (!item?.ultimoTrabajadorId) return null;
     const id = item.ultimoTrabajadorId._id || item.ultimoTrabajadorId;
     return trabajadores.find(t => t._id === id);
-  }, [item.ultimoTrabajadorId, trabajadores]);
+  }, [item?.ultimoTrabajadorId, trabajadores]);
 
   // Relación de equipamiento completo del portador activo
   const equipamientoCompletoTrabajador = useMemo(() => {
-    if (!item.TrabajadorId) return [];
+    if (!item?.TrabajadorId) return [];
     const idTrabajador = item.TrabajadorId._id || item.TrabajadorId;
     return materiales.filter(m => {
       const idAsig = m.TrabajadorId?._id || m.TrabajadorId;
       return idAsig === idTrabajador;
     });
-  }, [item.TrabajadorId, materiales]);
+  }, [item?.TrabajadorId, materiales]);
 
   // Limpieza de campos internos para visualización de ficha técnica base
   const camposLimpiosBBDD = useMemo(() => {
     const ignorarCampos = ['_id', 'id', 'createdAt', 'updatedAt', '__v', 'TrabajadorId', 'ultimoTrabajadorId', 'telefonoId'];
-    return Object.entries(item).filter(([key]) => !ignorarCampos.includes(key));
+    return Object.entries(item || {}).filter(([key]) => !ignorarCampos.includes(key));
   }, [item]);
 
   // Generador Dinámico de Documentación Contractual por flujo binario directo GET
@@ -101,6 +99,12 @@ const ViewMaterialModal = ({ item, onClose }) => {
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
+
+  // 🔒 Este return condicional debe ir DESPUÉS de declarar todos los hooks:
+  // los hooks de React deben llamarse siempre en el mismo orden en cada
+  // renderizado. Si fuera antes, React lanzaría "Rendered fewer/more hooks
+  // than during the previous render" al abrir/cerrar el modal.
+  if (!item) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

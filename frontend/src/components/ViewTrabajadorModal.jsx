@@ -5,8 +5,6 @@ import { revelarCredenciales as revelarCredencialesApi, descargarLlaveroCredenci
 import { FileText, Download, HardDrive, KeyRound, Globe, Mail, Landmark, Sliders } from 'lucide-react';
 
 const ViewTrabajadorModal = ({ item, onClose }) => {
-  if (!item) return null;
-
   const [activeTab, setActiveTab] = useState('expediente'); // 'expediente' o 'credenciales'
   const [procesandoPdf, setProcesandoPdf] = useState(false);
   const [confirmarPass, setConfirmarPass] = useState('');
@@ -22,18 +20,19 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
 
   // 🛠️ RELACIÓN CRUZADA INVERSA BLINDADA CONTRA NULOS
   const equipamientoAsignado = useMemo(() => {
+    if (!item) return [];
     const idTrabajador = item._id || item.id;
     return materiales.filter(m => {
       const idAsig = m.TrabajadorId?._id || m.TrabajadorId || m.asignadoA?._id || m.asignadoA;
       return idAsig && idAsig.toString() === idTrabajador.toString();
     });
-  }, [item._id, item.id, materiales]);
+  }, [item, materiales]);
 
   // Filtrado de propiedades del esquema. password/passwordApple ya no llegan desde
   // el backend (se ocultan siempre), pero se excluyen también aquí por si acaso.
   const camposLimpiosBBDD = useMemo(() => {
     const ignorarCampos = ['_id', 'id', 'createdAt', 'updatedAt', '__v', 'salt', 'password', 'passwordApple'];
-    return Object.entries(item).filter(([key]) => !ignorarCampos.includes(key));
+    return Object.entries(item || {}).filter(([key]) => !ignorarCampos.includes(key));
   }, [item]);
 
   // Cambia de pestaña y, si se sale de "credenciales", olvida las contraseñas
@@ -102,6 +101,12 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
       setProcesandoPdf(false);
     }
   };
+
+  // 🔒 Este return condicional debe ir DESPUÉS de declarar todos los hooks:
+  // los hooks de React deben llamarse siempre en el mismo orden en cada
+  // renderizado. Si fuera antes, React lanzaría "Rendered fewer/more hooks
+  // than during the previous render" al abrir/cerrar el modal.
+  if (!item) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

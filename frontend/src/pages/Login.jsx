@@ -1,8 +1,8 @@
 // frontend/src/pages/Login.jsx
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const Login = () => {
   // Estado local para capturar las credenciales de acceso del operador del ERP
@@ -36,18 +36,11 @@ const Login = () => {
     setError('');
     
     try {
-      /**
-       * Arquitectura limpia: Petición directa aislada de interceptores globales.
-       * Evitamos que Axios intente resolver redirecciones o procesar interceptores globales
-       * forzando la transformación manual del payload a String JSON.
-       */
-      const res = await axios({
-        method: 'post',
-        url: '/api/auth/login',
-        data: { username, password },
-        headers: { 'Content-Type': 'application/json' },
-        transformRequest: [(data) => JSON.stringify(data)], 
-      });
+      // Usamos la instancia 'api' configurada (misma baseURL que el resto del
+      // ERP, correcta tanto en desarrollo como en producción). El interceptor
+      // de errores de api.js no causa problemas aquí: si las credenciales son
+      // incorrectas (401) no redirige, porque ya estamos en /login.
+      const res = await api.post('/auth/login', { username, password });
 
       // Verificación de integridad de la respuesta devuelta por el controlador de Express
       if (res.data?.token && res.data?.user) {
@@ -68,7 +61,7 @@ const Login = () => {
       console.error('Fallo en el proceso de autenticación del operador:', err);
       
       // Diagnóstico preciso de denegación de servicio por políticas de Rate Limiting corporativas
-      if (err.response?.status === 429) {
+      if (err.status === 429) {
         setError(
           'Acceso temporalmente restringido por seguridad corporativa (429). ' +
           'El servidor ha detectado demasiadas peticiones desde este origen. ' +
@@ -76,7 +69,7 @@ const Login = () => {
         );
       } else {
         // Captura el mensaje de error personalizado sembrado por el servidor o aplica fallback
-        setError(err.response?.data?.error || 'Credenciales de acceso no válidas. Inténtelo de nuevo.');
+        setError(err.message || 'Credenciales de acceso no válidas. Inténtelo de nuevo.');
       }
     } finally {
       // Liberación del bloqueo de la interfaz de usuario una vez finalizada la operación

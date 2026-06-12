@@ -14,15 +14,12 @@ const CreateMaterialModal = ({ isOpen, onClose, onCreated, trabajadores = [] }) 
     imei: '', 
     pn: '',
     TrabajadorId: '', 
-    telefonoId: '', 
     estado: 'Disponible', 
     esRenting: false, 
     fechaEntregaOficina: '', 
     duracionRenting: 36, // Tipo número según tu nuevo enum de Mongoose
     comentarios: '',
-    nContrato: '',
-    nDenuncia: '',
-    docDenuncia: null
+    nContrato: ''
   });
 
   // Filtra personal en estado 'Activo' o 'Pendiente de alta' ordenados alfabéticamente

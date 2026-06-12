@@ -13,7 +13,6 @@ const HistorialPage = () => {
     const q = filterQuery.toLowerCase().trim();
     if (!q) return registros;
     return registros.filter(r => 
-      r.usuario?.toLowerCase().includes(q) || 
       r.accion?.toLowerCase().includes(q) || 
       r.detalles?.toLowerCase().includes(q)
     );
@@ -22,7 +21,8 @@ const HistorialPage = () => {
   const { currentItems, currentPage, totalPages, nextPage, prevPage } = usePagination(filteredData, 15);
 
   const columns = [
-    { label: 'Fecha / Hora', key: 'createdAt', render: (val) => <span className="font-mono text-slate-500 text-xs">{val ? new Date(val).toLocaleString('es-ES') : '-'}</span> },    { label: 'Operación Ejecutada', key: 'accion', render: (val) => {
+    { label: 'Fecha / Hora', key: 'createdAt', render: (val) => <span className="font-mono text-slate-500 text-xs">{val ? new Date(val).toLocaleString('es-ES') : '-'}</span> },
+    { label: 'Operación Ejecutada', key: 'accion', render: (val) => {
         let badgeStyle = 'bg-slate-100 text-slate-700';
         if (val?.includes('CREAR') || val?.includes('ALTA')) badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-100';
         if (val?.includes('MODIFICAR') || val?.includes('ACTUALIZAR')) badgeStyle = 'bg-amber-50 text-amber-700 border-amber-100';
@@ -40,7 +40,7 @@ const HistorialPage = () => {
       </div>
 
       <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex items-center max-w-md">
-        <input type="text" placeholder="Filtrar bitácora por operador, acción o detalle..." value={filterQuery} onChange={(e) => setFilterQuery(e.target.value)} className="w-full text-xs font-semibold focus:outline-none" />
+        <input type="text" placeholder="Filtrar bitácora por acción o detalle..." value={filterQuery} onChange={(e) => setFilterQuery(e.target.value)} className="w-full text-xs font-semibold focus:outline-none" />
       </div>
 
       <Table columns={columns} data={currentItems} loading={loading} />

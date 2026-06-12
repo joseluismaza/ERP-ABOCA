@@ -5,14 +5,14 @@ import { descargarLlaveroCredenciales } from '../services/trabajadorService';
 import { Shield, FileText, Download, KeyRound, Smartphone } from 'lucide-react';
 
 const ViewTelefonosModal = ({ item, onClose }) => {
-  if (!item) return null;
-
   const [activeTab, setActiveTab] = useState('expediente'); // 'expediente' o 'seguridad'
   const [procesandoPdf, setProcesandoPdf] = useState(false);
   const { trabajadores = [], refreshGlobalData } = useGlobalData() || {};
 
   // Resolvemos el trabajador asignado activo actual usando la nueva relación del modelo
   const trabajadorAsignado = useMemo(() => {
+    if (!item) return null;
+
     // 1. Capturamos cualquier posible vía de enlace (nueva o antigua)
     const referencia = item.TrabajadorId || item.asignadoA;
     if (!referencia) return null;
@@ -25,7 +25,7 @@ const ViewTelefonosModal = ({ item, onClose }) => {
     // 3. CASO B: Si "referencia" es solo el ID en texto plano, lo buscamos en el contexto
     const idBuscado = String(referencia._id || referencia);
     return trabajadores.find(t => String(t._id || t.id) === idBuscado);
-  }, [item.TrabajadorId, item.asignadoA, trabajadores]);
+  }, [item, trabajadores]);
 
   // Diccionario estético para formatear los campos puros de telefonía
   const mapeoCampos = {
@@ -44,7 +44,7 @@ const ViewTelefonosModal = ({ item, onClose }) => {
   // Mapeamos los campos del registro excluyendo IDs y metadatos del sistema
   const camposFormateados = useMemo(() => {
     const ignorarCampos = ['_id', 'id', 'createdAt', 'updatedAt', '__v', 'TrabajadorId', 'asignadoA'];
-    return Object.entries(item)
+    return Object.entries(item || {})
       .filter(([key]) => !ignorarCampos.includes(key))
       .map(([key, valor]) => ({
         label: mapeoCampos[key] || key,
@@ -76,6 +76,12 @@ const ViewTelefonosModal = ({ item, onClose }) => {
       setProcesandoPdf(false);
     }
   };
+
+  // 🔒 Este return condicional debe ir DESPUÉS de declarar todos los hooks:
+  // los hooks de React deben llamarse siempre en el mismo orden en cada
+  // renderizado. Si fuera antes, React lanzaría "Rendered fewer/more hooks
+  // than during the previous render" al abrir/cerrar el modal.
+  if (!item) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

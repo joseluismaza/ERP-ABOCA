@@ -7,7 +7,7 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
     tipo: 'Portátil', marca: '', modelo: '', sn: '', imei: '', pn: '',
     TrabajadorId: '', telefonoId: '', esRenting: false, fechaEntregaOficina: '', 
     duracionRenting: '24', comentarios: '', estado: 'Disponible',
-    fechaEntregaTrabajador: '', fechaDevolucionTrabajador: '', fechaDevolucionRenting: '',
+    fechaEntregaTrabajador: '', fechaDevolucionTrabajador: '', 
     nContrato: '', devueltoRenting: false, nDenuncia: '', fechaRobo: ''
   });
 
@@ -123,7 +123,7 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
             <label className="text-[11px] font-bold text-slate-500 uppercase mb-1">Línea Telefónica Asociada</label>
             <select name="telefonoId" value={values.telefonoId} onChange={handleChange} className="border border-slate-200 rounded-lg p-2 text-xs font-medium bg-white">
               <option value="">Sin tarjeta SIM vinculada</option>
-              {telefonos.map(tel => <option key={tel._id} value={tel._id}>{tel.numeroTelefono}</option>)}
+              {telefonos.map(tel => <option key={tel._id} value={tel._id}>{tel.numeroTelefono} ({tel.tipoSIM})</option>)}
             </select>
           </div>
 

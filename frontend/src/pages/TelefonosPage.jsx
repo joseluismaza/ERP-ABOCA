@@ -14,12 +14,10 @@ const TelefonosPage = () => {
   const { 
     telefonos = [], 
     trabajadores = [], 
-    loading = {}, 
-    refreshGlobalData,
-    reloadGlobalData 
+    loading = false, 
+    refreshGlobalData
   } = useGlobalData() || {};
 
-  const ejecutarRefrescoBBDD = refreshGlobalData || reloadGlobalData;
   const { activeIncident, clearActiveIncident } = useNotifications();
 
   // 🎛️ ESTADOS DE FILTRADO
@@ -118,7 +116,7 @@ const TelefonosPage = () => {
     if (window.confirm('¿Desea rescindir e inactivar esta línea telefónica del ERP?')) {
       try {
         await deleteTelefono(id);
-        if (ejecutarRefrescoBBDD) ejecutarRefrescoBBDD();
+        if (refreshGlobalData) refreshGlobalData();
       } catch (err) { 
         alert(err.message || 'Error al eliminar'); 
       }
@@ -301,7 +299,7 @@ const TelefonosPage = () => {
       <Table 
         columns={columns} 
         data={currentItems} 
-        loading={!!loading.telefonos} 
+        loading={loading} 
         actions={(row) => (
           <div className="flex items-center gap-1">
             <button 
@@ -339,8 +337,8 @@ const TelefonosPage = () => {
       )}
 
       {/* Modales modulares del ecosistema */}
-      <CreateTelefonoModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={ejecutarRefrescoBBDD} />
-      {editingTelefono && <EditTelefonoModal isOpen={!!editingTelefono} onClose={() => setEditingTelefono(null)} telefono={editingTelefono} onUpdated={ejecutarRefrescoBBDD} />}
+      <CreateTelefonoModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={refreshGlobalData} />
+      {editingTelefono && <EditTelefonoModal isOpen={!!editingTelefono} onClose={() => setEditingTelefono(null)} telefono={editingTelefono} onUpdated={refreshGlobalData} />}
       <ViewTelefonosModal item={selectedTelefono} title="Línea Telefónica" onClose={() => setSelectedTelefono(null)} />
     </div>
   );

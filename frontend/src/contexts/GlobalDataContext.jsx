@@ -23,8 +23,14 @@ export const GlobalDataProvider = ({ children }) => {
    * Ejecuta peticiones concurrentes a la API optimizando los tiempos de respuesta del servidor.
    */
   const refreshGlobalData = useCallback(async () => {
-    // Si el usuario no está autenticado en el sistema, no iniciamos las peticiones
+    // Si el usuario no está autenticado (incluido justo después de un logout),
+    // limpiamos las colecciones para que no quede visible información de la
+    // sesión anterior si otra persona inicia sesión después en el mismo navegador.
     if (!isAuthenticated) {
+      setTrabajadores([]);
+      setMateriales([]);
+      setTelefonos([]);
+      setError(null);
       setLoading(false);
       return;
     }
