@@ -1,6 +1,5 @@
 // frontend/src/services/materialService.js
 import api from './api';
-import { dataCache } from '../utils/dataCache';
 
 const CACHE_KEY = 'materiales_data';
 

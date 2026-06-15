@@ -1,6 +1,5 @@
 // frontend/src/services/telefonoService.js
 import api from './api';
-import { dataCache } from '../utils/dataCache';
 
 const CACHE_KEY = 'telefonos_data';
 

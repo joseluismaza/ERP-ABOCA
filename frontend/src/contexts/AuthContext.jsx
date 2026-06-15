@@ -1,7 +1,6 @@
 // frontend/src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { setAuthToken } from '../services/api';
-import { dataCache } from '../utils/dataCache';
 
 // Creación del contexto de autenticación nativo
 const AuthContext = createContext(null);
