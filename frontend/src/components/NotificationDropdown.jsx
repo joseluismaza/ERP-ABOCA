@@ -35,7 +35,9 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
               <p className="text-xs text-slate-700 font-semibold leading-relaxed">{n.message}</p>
               <div className="flex justify-between items-center mt-1.5">
                 <span className="text-[10px] text-slate-400 font-medium">{n.timestamp}</span>
-                <button onClick={() => handleResolve(n)} className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Resolver Incidencia →</button>
+                {n.accion && (
+                  <button onClick={() => handleResolve(n)} className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Resolver Incidencia →</button>
+                )}
               </div>
             </div>
           ))

@@ -1,20 +1,8 @@
 // frontend/src/services/trabajadorService.js
 import api from './api';
 
-const CACHE_KEY = 'trabajadores_data';
-
 export const getTrabajadores = async (options = {}) => {
-  // Si la petición viene con señal de abortar, ignoramos la caché para dar prioridad al control de red
-  if (!options.signal) {
-    const cachedData = dataCache.get(CACHE_KEY);
-    if (cachedData) return { data: cachedData };
-  }
-
   const response = await api.get('/trabajadores', { signal: options.signal });
-  
-  if (response && response.data) {
-    dataCache.set(CACHE_KEY, response.data);
-  }
   return response;
 };
 
@@ -24,19 +12,16 @@ export const getTrabajadorById = async (id) => {
 
 export const createTrabajador = async (data) => {
   const response = await api.post('/trabajadores', data);
-  dataCache.invalidate(CACHE_KEY); // Forzar recarga en la siguiente consulta
   return response;
 };
 
 export const updateTrabajador = async (id, data) => {
   const response = await api.put(`/trabajadores/${id}`, data);
-  dataCache.invalidate(CACHE_KEY); // Evita desfases de información en la UI
   return response;
 };
 
 export const deleteTrabajador = async (id) => {
   const response = await api.delete(`/trabajadores/${id}`);
-  dataCache.invalidate(CACHE_KEY);
   return response;
 };
 

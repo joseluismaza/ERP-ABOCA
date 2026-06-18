@@ -32,8 +32,11 @@ const generarAlertasDeMateriales = (materiales) => {
 };
 
 export const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState([]);
-  
+  // Notificaciones automáticas generadas por el análisis del inventario
+  const [notificacionesAutomaticas, setNotificacionesAutomaticas] = useState([]);
+  // Notificaciones manuales inyectadas desde componentes (ej: nueva línea telefónica creada)
+  const [notificacionesManuales, setNotificacionesManuales] = useState([]);
+
   // Estado controlado reactivo que sustituye el uso de CustomEvents para la apertura de modales
   const [activeIncident, setActiveIncident] = useState(null);
 
@@ -44,14 +47,22 @@ export const NotificationProvider = ({ children }) => {
   const globalData = useGlobalData() || {};
   const { materiales = [], refreshGlobalData } = globalData;
 
-  // Efecto que recalcula de forma reactiva las alertas cada vez que el almacén de materiales cambia
+  // Efecto que recalcula de forma reactiva las alertas cada vez que el almacén de materiales cambia.
+  // Solo afecta a notificacionesAutomaticas; las manuales persisten entre refresos.
   useEffect(() => {
     const nuevasNotificaciones = generarAlertasDeMateriales(materiales);
-    setNotifications(nuevasNotificaciones);
+    setNotificacionesAutomaticas(nuevasNotificaciones);
   }, [materiales]);
 
+  // INPUTS: Objeto notificación con campos: type, message, timestamp, id, (opcional) tipo, accion
+  // PROCESO: Añade la notificación al array de manuales sin afectar las automáticas
+  // OUTPUTS: La campanita muestra una nueva entrada informativa
+  const addNotification = (notificacion) => {
+    setNotificacionesManuales(prev => [...prev, notificacion]);
+  };
+
   /**
-   * Expone un objeto de configuración { tipo, id, accion } 
+   * Expone un objeto de configuración { tipo, id, accion }
    * para que las pantallas del ERP reaccionen y abran los modales de forma declarativa.
    */
   const triggerIncidentResolution = (incidentConfig) => {
@@ -62,9 +73,13 @@ export const NotificationProvider = ({ children }) => {
     setActiveIncident(null);
   };
 
+  // Combinamos ambas fuentes de notificaciones para exponerlas juntas
+  const notifications = [...notificacionesAutomaticas, ...notificacionesManuales];
+
   return (
-    <NotificationContext.Provider value={{ 
-      notifications, 
+    <NotificationContext.Provider value={{
+      notifications,
+      addNotification,
       materiales,              // Pasamos la colección limpia
       refreshGlobalData,       // Pasamos el método real de refresco de red
       activeIncident,

@@ -50,7 +50,6 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     setAuthToken(null);
     setUser(null);
-    dataCache.clearAll();
   }, []);
 
   return (

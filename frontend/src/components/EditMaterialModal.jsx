@@ -1,15 +1,26 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import useForm from '../hooks/useForm';
 import { updateMaterial } from '../services/materialService';
+import { createTelefono } from '../services/telefonoService';
+import { useNotifications } from '../contexts/NotificationContext';
+
+// Tipos de activo que pueden tener línea telefónica asociada
+const TIPOS_CON_LINEA = ['Móvil', 'Tablet'];
 
 const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores = [], telefonos = [] }) => {
   const [values, handleChange, resetForm, setValues] = useForm({
     tipo: 'Portátil', marca: '', modelo: '', sn: '', imei: '', pn: '',
-    TrabajadorId: '', telefonoId: '', esRenting: false, fechaEntregaOficina: '', 
+    TrabajadorId: '', telefonoId: '', esRenting: false, fechaEntregaOficina: '',
     duracionRenting: '24', comentarios: '', estado: 'Disponible',
-    fechaEntregaTrabajador: '', fechaDevolucionTrabajador: '', 
+    fechaEntregaTrabajador: '', fechaDevolucionTrabajador: '',
     nContrato: '', devueltoRenting: false, nDenuncia: '', fechaRobo: ''
   });
+
+  // Estado local del buscador de línea telefónica
+  const [busquedaTelefono, setBusquedaTelefono] = useState('');
+  const [mostrarDropdown, setMostrarDropdown] = useState(false);
+  const inputBusquedaRef = useRef(null);
+  const { addNotification } = useNotifications();
 
   const trabajadoresPermitidos = useMemo(() => {
     return trabajadores
@@ -17,20 +28,30 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [trabajadores]);
 
+  // INPUTS: Lista de teléfonos y texto escrito en el buscador
+  // PROCESO: Filtra por coincidencia de substring en numeroTelefono; devuelve vacío si no hay texto
+  // OUTPUTS: Array de teléfonos coincidentes para mostrar en el dropdown
+  const telefonosFiltrados = useMemo(() => {
+    if (!busquedaTelefono.trim()) return [];
+    return telefonos.filter(t =>
+      t.numeroTelefono && t.numeroTelefono.includes(busquedaTelefono.trim())
+    );
+  }, [telefonos, busquedaTelefono]);
+
   useEffect(() => {
     if (material) {
       const parseFecha = (f) => f ? f.split('T')[0] : '';
       setValues({
-        tipo: material.tipo || 'Portátil', 
-        marca: material.marca || '', 
+        tipo: material.tipo || 'Portátil',
+        marca: material.marca || '',
         modelo: material.modelo || '',
-        sn: material.sn || '', 
-        imei: material.imei || '', 
+        sn: material.sn || '',
+        imei: material.imei || '',
         pn: material.pn || '',
-        TrabajadorId: material.TrabajadorId?._id || material.TrabajadorId || '', 
-        telefonoId: material.telefonoId?._id || material.telefonoId || '', 
+        TrabajadorId: material.TrabajadorId?._id || material.TrabajadorId || '',
+        telefonoId: material.telefonoId?._id || material.telefonoId || '',
         esRenting: material.esRenting || false,
-        fechaEntregaOficina: parseFecha(material.fechaEntregaOficina), 
+        fechaEntregaOficina: parseFecha(material.fechaEntregaOficina),
         duracionRenting: material.duracionRenting || '36',
         fechaDevolucionRenting: parseFecha(material.fechaDevolucionRenting),
         comentarios: material.comentarios || '',
@@ -42,29 +63,115 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
         nDenuncia: material.nDenuncia || '',
         fechaRobo: parseFecha(material.fechaRobo)
       });
+
+      // Inicializamos el buscador con el número del teléfono ya vinculado al material
+      const telId = material.telefonoId?._id || material.telefonoId;
+      if (telId) {
+        const telEncontrado = telefonos.find(t => t._id === telId);
+        setBusquedaTelefono(telEncontrado?.numeroTelefono || '');
+      } else {
+        setBusquedaTelefono('');
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [material, setValues]);
 
   if (!isOpen) return null;
 
+  const esTipoConLinea = TIPOS_CON_LINEA.includes(values.tipo);
+
+  // INPUTS: Evento de cambio en el selector de trabajador
+  // PROCESO: Si el tipo es Móvil/Tablet, busca automáticamente si ese trabajador ya tiene
+  //          un teléfono asignado en Teléfonos y pre-rellena el buscador
+  // OUTPUTS: Actualiza TrabajadorId, telefonoId y busquedaTelefono en el estado del formulario
+  const handleTrabajadorChange = (e) => {
+    const nuevoTrabajadorId = e.target.value;
+
+    if (!TIPOS_CON_LINEA.includes(values.tipo)) {
+      handleChange(e);
+      return;
+    }
+
+    if (nuevoTrabajadorId) {
+      const telefonoDelTrabajador = telefonos.find(t =>
+        (t.TrabajadorId?._id || t.TrabajadorId) === nuevoTrabajadorId
+      );
+      if (telefonoDelTrabajador) {
+        setValues(prev => ({ ...prev, TrabajadorId: nuevoTrabajadorId, telefonoId: telefonoDelTrabajador._id }));
+        setBusquedaTelefono(telefonoDelTrabajador.numeroTelefono);
+      } else {
+        setValues(prev => ({ ...prev, TrabajadorId: nuevoTrabajadorId, telefonoId: '' }));
+        setBusquedaTelefono('');
+      }
+    } else {
+      setValues(prev => ({ ...prev, TrabajadorId: '', telefonoId: '' }));
+      setBusquedaTelefono('');
+    }
+  };
+
+  // INPUTS: Texto escrito en el campo de búsqueda
+  // PROCESO: Actualiza el texto; si se borra por completo, limpia también el telefonoId vinculado
+  // OUTPUTS: Actualiza busquedaTelefono y condicionalmente values.telefonoId
+  const handleBusquedaChange = (e) => {
+    const texto = e.target.value;
+    setBusquedaTelefono(texto);
+    setMostrarDropdown(true);
+    if (!texto.trim()) {
+      setValues(prev => ({ ...prev, telefonoId: '' }));
+    }
+  };
+
+  // INPUTS: Objeto telefono seleccionado del dropdown de resultados
+  // PROCESO: Vincula el teléfono al formulario y cierra el dropdown
+  // OUTPUTS: Actualiza values.telefonoId y busquedaTelefono con el número elegido
+  const handleSeleccionarTelefono = (tel) => {
+    setValues(prev => ({ ...prev, telefonoId: tel._id }));
+    setBusquedaTelefono(tel.numeroTelefono);
+    setMostrarDropdown(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    let telefonoIdFinal = values.telefonoId;
+
+    const trabajadorSeleccionado = values.TrabajadorId && values.TrabajadorId !== '';
+    const numeroEscrito = busquedaTelefono.trim();
+    const yaExisteEnListado = telefonos.some(t => t.numeroTelefono === numeroEscrito);
+
+    // Caso 2: Móvil/Tablet + trabajador + número nuevo escrito → crear teléfono automáticamente
+    if (esTipoConLinea && trabajadorSeleccionado && numeroEscrito && !telefonoIdFinal && !yaExisteEnListado) {
+      try {
+        const respuesta = await createTelefono({
+          numeroTelefono: numeroEscrito,
+          TrabajadorId: values.TrabajadorId,
+          estado: 'Asignado'
+        });
+        telefonoIdFinal = respuesta.data?._id || respuesta._id;
+        addNotification({
+          type: 'info',
+          message: `Línea ${numeroEscrito} creada y vinculada al dispositivo. Recuerda completar el resto de la información del teléfono (SIM, ICC, PIN...).`,
+          timestamp: new Date().toLocaleString('es-ES'),
+          id: `tel-nueva-${telefonoIdFinal || Date.now()}`
+        });
+      } catch (err) {
+        alert('Error al crear la línea telefónica: ' + (err.message || ''));
+        return;
+      }
+    }
+
     // 🛡️ SANEAMIENTO DE PAYLOAD: Convertimos las cadenas vacías en valores null válidos para MongoDB
     const payloadFinal = {
       ...values,
       // Si está vacío, guardamos null para desvincular al trabajador en el Back
-      TrabajadorId: values.TrabajadorId && values.TrabajadorId !== "" ? values.TrabajadorId : null,
-      
-      // 🔌 CORRECCIÓN DEL BUG: Si está vacío, guardamos null para liberar la tarjeta SIM
-      telefonoId: values.telefonoId && values.telefonoId !== "" ? values.telefonoId : null,
-      
+      TrabajadorId: values.TrabajadorId && values.TrabajadorId !== '' ? values.TrabajadorId : null,
+      // Si está vacío, guardamos null para liberar la tarjeta SIM
+      telefonoId: telefonoIdFinal || null,
       // Mantenemos la coherencia del estado operativo
-      estado: values.TrabajadorId && values.TrabajadorId !== "" ? 'Asignado' : values.estado
+      estado: values.TrabajadorId && values.TrabajadorId !== '' ? 'Asignado' : values.estado
     };
 
     try {
-      // Enviamos el objeto completamente limpio de strings vacíos en sus IDs
       await updateMaterial(material._id || material.id, payloadFinal);
       onUpdated();
       onClose();
@@ -79,9 +186,9 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
         <div className="px-6 py-4 border-b border-slate-100">
           <h3 className="text-base font-black text-slate-800">Modificar Ficha Completa de Activo</h3>
         </div>
-        
+
         <div className="p-6 space-y-4 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-          
+
           {/* Ficha Base */}
           <div className="flex flex-col">
             <label className="text-[11px] font-bold text-slate-500 uppercase mb-1">Tipo de Activo</label>
@@ -119,19 +226,63 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
             <label className="text-[11px] font-bold text-slate-500 uppercase mb-1">Part Number (P/N)</label>
             <input type="text" name="pn" value={values.pn} onChange={handleChange} className="border border-slate-200 rounded-lg p-2 text-xs font-medium" />
           </div>
-          <div className="flex flex-col">
-            <label className="text-[11px] font-bold text-slate-500 uppercase mb-1">Línea Telefónica Asociada</label>
-            <select name="telefonoId" value={values.telefonoId} onChange={handleChange} className="border border-slate-200 rounded-lg p-2 text-xs font-medium bg-white">
-              <option value="">Sin tarjeta SIM vinculada</option>
-              {telefonos.map(tel => <option key={tel._id} value={tel._id}>{tel.numeroTelefono} ({tel.tipoSIM})</option>)}
-            </select>
-          </div>
+
+          {/* Buscador de línea telefónica: solo visible para Móvil y Tablet */}
+          {esTipoConLinea && (
+            <div className="flex flex-col relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase mb-1">Línea Telefónica Asociada</label>
+              <input
+                ref={inputBusquedaRef}
+                type="text"
+                value={busquedaTelefono}
+                onChange={handleBusquedaChange}
+                onFocus={() => setMostrarDropdown(true)}
+                onBlur={() => setTimeout(() => setMostrarDropdown(false), 150)}
+                placeholder="Escribe el número para buscar..."
+                className="border border-slate-200 rounded-lg p-2 text-xs font-medium"
+              />
+              {/* Indicador de línea ya vinculada */}
+              {values.telefonoId && (
+                <span className="mt-1 text-[10px] text-emerald-600 font-bold">✓ Línea vinculada</span>
+              )}
+              {/* Dropdown con las coincidencias */}
+              {mostrarDropdown && telefonosFiltrados.length > 0 && (
+                <ul className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                  {telefonosFiltrados.map(tel => (
+                    <li
+                      key={tel._id}
+                      onMouseDown={() => handleSeleccionarTelefono(tel)}
+                      className="px-3 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer flex justify-between items-center"
+                    >
+                      <span>{tel.numeroTelefono}</span>
+                      {tel.TrabajadorId && (
+                        <span className="text-[10px] text-slate-400">
+                          {tel.TrabajadorId?.nombre || ''} {tel.TrabajadorId?.apellidos || ''}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {/* Aviso cuando el número escrito no existe: se creará al guardar */}
+              {mostrarDropdown && busquedaTelefono.trim() && telefonosFiltrados.length === 0 && !values.telefonoId && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-[10px] text-amber-700 font-semibold z-10">
+                  Número no encontrado — se creará una nueva línea al guardar.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Asignación y Fechas */}
           <div className="flex flex-col md:col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-3">
             <div className="flex flex-col">
               <label className="text-[11px] font-black text-indigo-600 uppercase mb-1">Asignar Custodia a Empleado</label>
-              <select name="TrabajadorId" value={values.TrabajadorId} onChange={handleChange} className="border border-slate-200 rounded-lg p-2 text-xs font-medium bg-white">
+              <select
+                name="TrabajadorId"
+                value={values.TrabajadorId}
+                onChange={esTipoConLinea ? handleTrabajadorChange : handleChange}
+                className="border border-slate-200 rounded-lg p-2 text-xs font-medium bg-white"
+              >
                 <option value="">Depósito Libre en Almacén Central (Disponible)</option>
                 {trabajadoresPermitidos.map(t => <option key={t._id} value={t._id}>{t.nombre} {t.apellidos}</option>)}
               </select>
@@ -190,7 +341,7 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
             <textarea name="comentarios" value={values.comentarios} onChange={handleChange} rows="2" className="border border-slate-200 rounded-lg p-2 text-xs font-medium" />
           </div>
         </div>
-        
+
         <div className="bg-slate-50 px-6 py-4 rounded-b-3xl flex justify-end gap-2 border-t border-slate-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancelar</button>
           <button type="submit" className="px-4 py-2 text-xs font-bold text-white bg-amber-500 rounded-xl hover:bg-amber-600 transition-colors shadow-xs">Guardar Cambios</button>
