@@ -5,10 +5,9 @@ const ZXingScanner = ({ onDetected, onClose }) => {
   const videoRef = useRef(null);
   const [status, setStatus] = useState('scanning'); // 'scanning', 'found', 'error'
   const [result, setResult] = useState('');
-  
-  // Referencias mutables para evitar ciclos de renderizado y cierres asíncronos limpios
+
+  // Referencia mutable al lector de ZXing para poder resetearlo en el cleanup
   const readerRef = useRef(null);
-  const streamRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -17,58 +16,33 @@ const ZXingScanner = ({ onDetected, onClose }) => {
       if (!videoRef.current) return;
 
       try {
-        if (isMounted) setStatus('scanning');
-
-        // 1. Carga dinámica de la librería para optimizar el bundle inicial del ERP
+        // Carga dinámica de la librería para optimizar el bundle inicial
         const { BrowserMultiFormatReader } = await import('@zxing/library');
-        
-        if (!isMounted) return; // Cancelar si el usuario ya cerró el modal durante la descarga
-        
-        readerRef.current = new BrowserMultiFormatReader();
-
-        // 2. Solicitar acceso exclusivo a la cámara trasera (environment)
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-
-        if (!isMounted) {
-          // Si se desmontó justo mientras el usuario aceptaba el permiso de la cámara,
-          // cerramos el stream inmediatamente de forma segura.
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-        videoRef.current.srcObject = stream;
-
-        // Esperar a que los metadatos del vídeo estén listos para reproducir
-        await new Promise((resolve) => {
-          if (videoRef.current) {
-            videoRef.current.onloadedmetadata = () => resolve();
-          } else {
-            resolve();
-          }
-        });
 
         if (!isMounted) return;
-        await videoRef.current.play();
 
-        // 3. Iniciar el descodificador continuo sobre el elemento de vídeo
-        readerRef.current.decodeFromVideoElement(videoRef.current, (decodeResult, error) => {
-          if (!isMounted) return;
+        readerRef.current = new BrowserMultiFormatReader();
 
-          if (decodeResult) {
-            const detectedText = decodeResult.getText();
-            setResult(detectedText);
-            setStatus('found');
-            
-            // Notificar al componente padre de forma segura
-            if (typeof onDetected === 'function') {
-              onDetected(detectedText);
+        // decodeFromConstraints gestiona el stream de cámara internamente (API correcta en v0.20+).
+        // No hay que llamar a getUserMedia, srcObject ni play() manualmente.
+        await readerRef.current.decodeFromConstraints(
+          { video: { facingMode: 'environment' } },
+          videoRef.current,
+          (decodeResult, error) => {
+            if (!isMounted) return;
+
+            if (decodeResult) {
+              const detectedText = decodeResult.getText();
+              setResult(detectedText);
+              setStatus('found');
+
+              if (typeof onDetected === 'function') {
+                onDetected(detectedText);
+              }
             }
+            // Los errores de frame sin código (NotFoundException) son normales, se ignoran.
           }
-          // Ignoramos los errores continuos de escaneo (cuando no lee ningún código en un frame)
-        });
+        );
 
       } catch (err) {
         console.error('Error crítico al inicializar el hardware del escáner:', err);
@@ -78,33 +52,24 @@ const ZXingScanner = ({ onDetected, onClose }) => {
 
     initScanner();
 
-    // Función de limpieza atómica (Cleanup function del useEffect)
+    // Cleanup: reset() detiene el stream y libera la cámara
     return () => {
       isMounted = false;
-      
-      // Detener de forma inmediata todos los tracks de vídeo abiertos
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-
-      // Detener y resetear los hilos del lector de ZXing
       if (readerRef.current) {
         readerRef.current.reset();
         readerRef.current = null;
       }
     };
-  }, [onDetected]);
+  }, []); // Sin dependencias: el escáner se monta una sola vez
 
-  // Manejador para reintentar el acceso en caso de error de permisos
   const handleRetry = () => {
     setStatus('scanning');
-    window.location.reload(); // Opción segura para refrescar el estado del hardware del navegador
+    window.location.reload();
   };
 
   return (
     <div className="relative w-full h-full min-h-[250px] bg-black flex items-center justify-center overflow-hidden rounded-lg">
-      {/* Elemento de vídeo nativo donde se inyecta el stream WebRTC */}
+      {/* Elemento de vídeo donde ZXing inyecta el stream */}
       <video
         ref={videoRef}
         className={`w-full h-full object-cover ${status === 'scanning' ? 'block' : 'hidden'}`}
@@ -112,10 +77,9 @@ const ZXingScanner = ({ onDetected, onClose }) => {
         playsInline
       />
 
-      {/* Capa de UI sobrepuesta: Estado Escaneando */}
+      {/* Estado: Escaneando */}
       {status === 'scanning' && (
         <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-          {/* Animación del marco del escáner */}
           <div className="w-64 h-40 border-2 border-indigo-500 rounded-lg relative flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.5)]">
             <div className="w-full h-0.5 bg-red-500 animate-pulse absolute top-1/2 left-0 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
           </div>
@@ -125,7 +89,7 @@ const ZXingScanner = ({ onDetected, onClose }) => {
         </div>
       )}
 
-      {/* Capa de UI: Código Detectado con Éxito */}
+      {/* Estado: Código detectado con éxito */}
       {status === 'found' && (
         <div className="text-center p-6 bg-white w-full h-full flex flex-col justify-center items-center z-10 animate-fadeIn">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-3 shadow-inner">
@@ -138,7 +102,7 @@ const ZXingScanner = ({ onDetected, onClose }) => {
         </div>
       )}
 
-      {/* Capa de UI: Error de Acceso al Hardware */}
+      {/* Estado: Error de acceso al hardware */}
       {status === 'error' && (
         <div className="text-center p-6 bg-white w-full h-full flex flex-col justify-center items-center z-10 animate-fadeIn">
           <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-3">

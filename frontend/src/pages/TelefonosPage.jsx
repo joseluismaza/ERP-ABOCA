@@ -54,14 +54,6 @@ const TelefonosPage = () => {
       });
   }, [trabajadores]);
 
-  // Estadísticas calculadas del total de teléfonos
-  const stats = useMemo(() => {
-    const total = telefonos.length;
-    const asignados = telefonos.filter(t => String(t.estado || '').toLowerCase().trim() === 'asignado').length;
-    const disponibles = telefonos.filter(t => String(t.estado || '').toLowerCase().trim() !== 'asignado').length;
-    return { total, asignados, disponibles };
-  }, [telefonos]);
-
   // 🚀 LÓGICA DE FILTRADO COMBINADO Y MULTI-CRITERIO
   const filteredData = useMemo(() => {
     return telefonos.filter(t => {
@@ -92,6 +84,14 @@ const TelefonosPage = () => {
       return true;
     });
   }, [telefonos, filterQuery, statusFilter, workerFilter]);
+
+  // Estadísticas calculadas sobre los teléfonos filtrados actualmente
+  const stats = useMemo(() => {
+    const total = filteredData.length;
+    const asignados = filteredData.filter(t => String(t.estado || '').toLowerCase().trim() === 'asignado').length;
+    const disponibles = filteredData.filter(t => String(t.estado || '').toLowerCase().trim() !== 'asignado').length;
+    return { total, asignados, disponibles };
+  }, [filteredData]);
 
   const { currentItems, currentPage, totalPages, nextPage, prevPage } = usePagination(filteredData, 12);
 

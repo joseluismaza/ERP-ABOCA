@@ -56,16 +56,6 @@ const TrabajadoresPage = () => {
     };
   }, [trabajadores]);
 
-  // Estadísticas calculadas del total de trabajadores
-  const stats = useMemo(() => {
-    const total = trabajadores.length;
-    const activos = trabajadores.filter(t => t.estado?.toLowerCase() === 'activo').length;
-    const baja = trabajadores.filter(t => t.estado?.toLowerCase() === 'de baja').length;
-    const inactivos = trabajadores.filter(t => t.estado?.toLowerCase() === 'inactivo').length;
-    const pendientes = trabajadores.filter(t => t.estado?.toLowerCase() === 'pendiente de alta').length;
-    return { total, activos, baja, inactivos, pendientes };
-  }, [trabajadores]);
-
   // Motor unificado de Filtrado y Ordenación
   const processedData = useMemo(() => {
     let result = [...trabajadores];
@@ -119,6 +109,16 @@ const TrabajadoresPage = () => {
 
     return result;
   }, [trabajadores, filterQuery, filterEstado, filterCargo, filterCodZona, filterZona, sortBy]);
+
+  // Estadísticas calculadas sobre los trabajadores filtrados actualmente
+  const stats = useMemo(() => {
+    const total = processedData.length;
+    const activos = processedData.filter(t => t.estado?.toLowerCase() === 'activo').length;
+    const baja = processedData.filter(t => t.estado?.toLowerCase() === 'de baja').length;
+    const inactivos = processedData.filter(t => t.estado?.toLowerCase() === 'inactivo').length;
+    const pendientes = processedData.filter(t => t.estado?.toLowerCase() === 'pendiente de alta').length;
+    return { total, activos, baja, inactivos, pendientes };
+  }, [processedData]);
 
   const { currentItems, currentPage, totalPages, nextPage, prevPage } = usePagination(processedData, 12);
 

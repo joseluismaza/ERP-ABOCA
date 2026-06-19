@@ -76,18 +76,6 @@ const MaterialesPage = () => {
       });
   }, [trabajadores]);
 
-  // Estadísticas calculadas del total de materiales
-  const stats = useMemo(() => {
-    const total = materiales.length;
-    const asignados = materiales.filter(m => !!m.TrabajadorId).length;
-    const disponibles = materiales.filter(m => !m.TrabajadorId && (!m.estado || m.estado.toLowerCase() === 'disponible')).length;
-    const otros = materiales.filter(m => {
-      const estado = (m.estado || '').toLowerCase().trim();
-      return estado === 'robado' || estado === 'devuelto a renting' || estado === 'comprado';
-    }).length;
-    return { total, asignados, disponibles, otros };
-  }, [materiales]);
-
   // 🛠️ MOTOR DE FILTRADO COMBINADO Y RESPONSIVE
   const filteredData = useMemo(() => {
     return materiales.filter(m => {
@@ -120,6 +108,18 @@ const MaterialesPage = () => {
       return matchQuery && matchModelo && matchAsignado && matchRenting && matchEstado;
     });
   }, [materiales, filterQuery, filterModelo, filterAsignado, filterRenting, filterEstado]);
+
+  // Estadísticas calculadas sobre los materiales filtrados actualmente
+  const stats = useMemo(() => {
+    const total = filteredData.length;
+    const asignados = filteredData.filter(m => !!m.TrabajadorId).length;
+    const disponibles = filteredData.filter(m => !m.TrabajadorId && (!m.estado || m.estado.toLowerCase() === 'disponible')).length;
+    const otros = filteredData.filter(m => {
+      const estado = (m.estado || '').toLowerCase().trim();
+      return estado === 'robado' || estado === 'devuelto a renting' || estado === 'comprado';
+    }).length;
+    return { total, asignados, disponibles, otros };
+  }, [filteredData]);
 
   const { currentItems, currentPage, totalPages, nextPage, prevPage } = usePagination(filteredData, 12);
 
