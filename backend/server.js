@@ -126,3 +126,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`[Server] Servidor corriendo de forma íntegra en el puerto ${PORT} en entorno corporativo.`);
 });
+
+// Exportamos la app para que Vercel (@vercel/node) la use como handler serverless
+export default app;
