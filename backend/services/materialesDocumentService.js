@@ -45,8 +45,21 @@ export const generarActaMaterial = async (trabajador, materiales, tipo) => {
 
   materiales.forEach(mat => {
     const fila = tabla.row();
-    fila.cell({ padding: 6, borderBottom: 0.5, borderColor: 0xe2e8f0 }).text(mat.nombre || 'Material Técnico', { fontSize: 9 });
-    fila.cell({ padding: 6, borderBottom: 0.5, borderColor: 0xe2e8f0 }).text(mat.numeroSerie || 'S/N', { fontSize: 9 });
+
+    if (mat.telefono) {
+      const t = mat.telefono;
+      const lineaNumero = t.numeroInterno
+        ? `Nº Teléfono: ${t.numeroTelefono} (${t.numeroInterno})`
+        : `Nº Teléfono: ${t.numeroTelefono}`;
+      const lineaPin = `PIN: ${t.pin1}  |  PUK: ${t.puk1}`;
+      const contenidoCelda = `${mat.nombre || 'Material Técnico'}\n${lineaNumero}\n${lineaPin}`;
+
+      fila.cell({ padding: 6, borderBottom: 0.5, borderColor: 0xe2e8f0 }).text(contenidoCelda, { fontSize: 9 });
+      fila.cell({ padding: 6, borderBottom: 0.5, borderColor: 0xe2e8f0 }).text(`SN: ${mat.numeroSerie}`, { fontSize: 9 });
+    } else {
+      fila.cell({ padding: 6, borderBottom: 0.5, borderColor: 0xe2e8f0 }).text(mat.nombre || 'Material Técnico', { fontSize: 9 });
+      fila.cell({ padding: 6, borderBottom: 0.5, borderColor: 0xe2e8f0 }).text(mat.numeroSerie || 'S/N', { fontSize: 9 });
+    }
   });
 
   // Espacio controlado tras la tabla para iniciar el bloque de aceptación

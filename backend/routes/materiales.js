@@ -7,6 +7,7 @@ import {
   updateMaterial,
   deleteMaterial,
   documentarMateriales,
+  enviarActaMail,
   exportToExcel,
   getMaterialBySnOrImei
 } from '../controllers/materialController.js';
@@ -21,7 +22,8 @@ router.get('/', getAllMateriales);
 
 // 🛠️ 2. REGISTRAR AQUÍ: Cambia el router.post antiguo por esta ruta por GET.
 // Debe ir antes de router.get('/:id') para evitar colisiones de rutas en Express.
-router.get('/:id/documentar', documentarMateriales); 
+router.get('/:id/documentar', documentarMateriales);
+router.post('/:id/enviar-acta', enviarActaMail);
 router.get('/buscar/:code', getMaterialBySnOrImei);
 router.get('/:id', getMaterialById);
 router.post('/', createMaterial);

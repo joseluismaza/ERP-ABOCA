@@ -24,6 +24,7 @@ const TelefonosPage = () => {
   const [filterQuery, setFilterQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState(''); // '' | 'disponible' | 'asignado'
   const [workerFilter, setWorkerFilter] = useState(''); // '' | ID del Trabajador
+  const [deviceFilter, setDeviceFilter] = useState(''); // '' | 'iphone' | 'ipad'
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedTelefono, setSelectedTelefono] = useState(null);
@@ -81,9 +82,15 @@ const TelefonosPage = () => {
         if (idVinculado !== String(workerFilter)) return false;
       }
 
+      // 4. Filtro por Tipo de Dispositivo
+      if (deviceFilter) {
+        const dispositivo = String(t.tipoDispositivo || '').toLowerCase().trim();
+        if (dispositivo !== deviceFilter) return false;
+      }
+
       return true;
     });
-  }, [telefonos, filterQuery, statusFilter, workerFilter]);
+  }, [telefonos, filterQuery, statusFilter, workerFilter, deviceFilter]);
 
   // Estadísticas calculadas sobre los teléfonos filtrados actualmente
   const stats = useMemo(() => {
@@ -268,6 +275,19 @@ const TelefonosPage = () => {
           </select>
         </div>
 
+        {/* Desplegable de Dispositivo */}
+        <div className="w-full md:w-44 border border-slate-200 rounded-xl p-1.5 bg-white focus-within:border-indigo-500 transition-colors">
+          <select
+            value={deviceFilter}
+            onChange={(e) => setDeviceFilter(e.target.value)}
+            className="w-full text-xs font-bold text-slate-600 bg-transparent focus:outline-none cursor-pointer"
+          >
+            <option value="">— Dispositivo —</option>
+            <option value="iphone">📱 iPhone</option>
+            <option value="ipad">🍏 iPad</option>
+          </select>
+        </div>
+
         {/* Desplegable de Trabajador */}
         <div className="w-full md:w-64 border border-slate-200 rounded-xl p-1.5 bg-white focus-within:border-indigo-500 transition-colors">
           <select
@@ -285,9 +305,9 @@ const TelefonosPage = () => {
         </div>
 
         {/* Botón rápido para limpiar filtros si hay alguno activo */}
-        {(filterQuery || statusFilter || workerFilter) && (
+        {(filterQuery || statusFilter || workerFilter || deviceFilter) && (
           <button
-            onClick={() => { setFilterQuery(''); setStatusFilter(''); setWorkerFilter(''); }}
+            onClick={() => { setFilterQuery(''); setStatusFilter(''); setWorkerFilter(''); setDeviceFilter(''); }}
             className="text-[11px] font-extrabold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/80 px-3 py-2 rounded-xl transition-all self-center md:self-auto text-center"
           >
             Limpiar Filtros

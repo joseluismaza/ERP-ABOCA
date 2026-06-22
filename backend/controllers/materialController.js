@@ -2,6 +2,7 @@ import Material from '../models/Material.js';
 import Historial from '../models/Historial.js';
 import { catchAsync } from '../middleware/errorHandler.js';
 import { generarActaMaterial } from '../services/materialesDocumentService.js';
+import { enviarEmailConAdjunto } from '../services/emailService.js';
 import ExcelJS from 'exceljs';
 
 export const getAllMateriales = catchAsync(async (req, res) => {
@@ -190,12 +191,27 @@ export const documentarMateriales = catchAsync(async (req, res) => {
   
   const materialesParaActa = await Material.find({
     _id: { $in: idsArray }
-  });
+  }).populate('telefonoId');
 
-  const materialesPayload = materialesParaActa.map(m => ({
-    nombre: `${m.marca} ${m.modelo} (${m.tipo})`,
-    numeroSerie: m.sn || 'S/N'
-  }));
+  const materialesPayload = materialesParaActa.map(m => {
+    const payload = {
+      nombre: `${m.marca} ${m.modelo} (${m.tipo})`,
+      numeroSerie: m.sn || 'S/N'
+    };
+    // Si es un Móvil con iPhone vinculado, añadimos los datos de la línea al payload
+    const tel = m.telefonoId;
+    const esMovilIphone = m.tipo === 'Móvil' && ['iphone', 'iPhone'].includes(tel?.tipoDispositivo);
+    const esTabletIpad  = m.tipo === 'Tablet' && ['ipad', 'iPad'].includes(tel?.tipoDispositivo);
+    if (tel && (esMovilIphone || esTabletIpad)) {
+      payload.telefono = {
+        numeroTelefono: tel.numeroTelefono || '',
+        numeroInterno: tel.numeroInterno || '',
+        pin1: tel.pin1 || 'N/D',
+        puk1: tel.puk1 || 'N/D'
+      };
+    }
+    return payload;
+  });
 
   // 3. Generamos el PDF con los materiales filtrados
   const pdfBuffer = await generarActaMaterial(trabajador, materialesPayload, tipo);
@@ -207,4 +223,54 @@ export const documentarMateriales = catchAsync(async (req, res) => {
   });
 
   res.send(pdfBuffer);
+});
+
+// Helper compartido: construye el materialesPayload con datos de teléfono si aplica
+const buildMaterilesPayload = async (idsArray) => {
+  const materiales = await Material.find({ _id: { $in: idsArray } }).populate('telefonoId');
+  return materiales.map(m => {
+    const payload = {
+      nombre: `${m.marca} ${m.modelo} (${m.tipo})`,
+      numeroSerie: m.sn || 'S/N'
+    };
+    const tel = m.telefonoId;
+    const esMovilIphone = m.tipo === 'Móvil'  && ['iphone', 'iPhone'].includes(tel?.tipoDispositivo);
+    const esTabletIpad  = m.tipo === 'Tablet' && ['ipad',   'iPad'  ].includes(tel?.tipoDispositivo);
+    if (tel && (esMovilIphone || esTabletIpad)) {
+      payload.telefono = {
+        numeroTelefono: tel.numeroTelefono || '',
+        numeroInterno:  tel.numeroInterno  || '',
+        pin1: tel.pin1 || 'N/D',
+        puk1: tel.puk1 || 'N/D'
+      };
+    }
+    return payload;
+  });
+};
+
+// POST /materiales/:id/enviar-acta
+// Genera el acta de entrega o devolución y la envía por correo desde la cuenta corporativa.
+export const enviarActaMail = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { tipo, seleccionados, destinatarios, asunto, cuerpo } = req.body;
+
+  if (!destinatarios?.length) {
+    return res.status(400).json({ error: 'Indica al menos un destinatario para el envío.' });
+  }
+
+  const materialBase = await Material.findById(id).populate('TrabajadorId');
+  if (!materialBase?.TrabajadorId) {
+    return res.status(404).json({ error: 'No se puede generar acta sin un trabajador asignado.' });
+  }
+
+  const trabajador = materialBase.TrabajadorId;
+  const idsArray = Array.isArray(seleccionados) && seleccionados.length ? seleccionados : [id];
+  const materialesPayload = await buildMaterilesPayload(idsArray);
+
+  const pdfBuffer = await generarActaMaterial(trabajador, materialesPayload, tipo);
+  const nombreArchivo = `ACTA_${tipo}_${trabajador.nombre}_${trabajador.apellidos || ''}.pdf`.replace(/\s+/g, '_');
+
+  await enviarEmailConAdjunto({ destinatarios, asunto, cuerpo, pdfBuffer, nombreArchivo });
+
+  res.json({ ok: true, mensaje: `Acta enviada correctamente a: ${destinatarios.join(', ')}` });
 });

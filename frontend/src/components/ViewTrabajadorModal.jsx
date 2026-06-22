@@ -1,10 +1,11 @@
 // frontend/src/components/ViewTrabajadorModal.jsx
 import React, { useState, useMemo } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
-import { revelarCredenciales as revelarCredencialesApi, descargarLlaveroCredenciales } from '../services/trabajadorService';
-import { descargarActaMaterial } from '../services/materialService';
+import { revelarCredenciales as revelarCredencialesApi, descargarLlaveroCredenciales, enviarLlaveroEmail } from '../services/trabajadorService';
+import { descargarActaMaterial, enviarActaEmail } from '../services/materialService';
+import PdfPreviewModal from './PdfPreviewModal';
 import { formatFieldValue } from '../utils/formatDate';
-import { FileText, Download, HardDrive, KeyRound } from 'lucide-react';
+import { FileText, Download, HardDrive, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 const LABELS = {
   nombre: 'Nombre', apellidos: 'Apellidos', dni: 'DNI / NIE', genero: 'Género',
@@ -25,6 +26,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
 
   const [procesandoPdf, setProcesandoPdf] = useState(false);
   const [seleccionados, setSeleccionados] = useState([]);
+  const [pdfPreview, setPdfPreview] = useState(null); // { blob, fileName, asunto, destinatarios, cuerpo, onEnviar }
 
   const [confirmarPass, setConfirmarPass] = useState('');
   const [autorizadoCredenciales, setAutorizadoCredenciales] = useState(false);
@@ -46,11 +48,6 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
     if (tab === 'documentacion' && seleccionados.length === 0 && equipamientoAsignado.length > 0) {
       setSeleccionados(equipamientoAsignado.map(m => m._id));
     }
-    if (tab !== 'documentacion') {
-      setAutorizadoCredenciales(false);
-      setCredenciales({ password: null, passwordApple: null });
-      setConfirmarPass('');
-    }
     setActiveTab(tab);
   };
 
@@ -66,16 +63,33 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
     setProcesandoPdf(true);
     try {
       const idMaterialBase = seleccionados[0];
-      const pdfBlob = await descargarActaMaterial(idMaterialBase, tipoActa, seleccionados);
-      const blob = new Blob([pdfBlob], { type: 'application/pdf' });
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
+      const pdfData = await descargarActaMaterial(idMaterialBase, tipoActa, seleccionados);
+      const blob = new Blob([pdfData], { type: 'application/pdf' });
       const nombre = `${item.nombre}_${item.apellidos}`.toUpperCase().replace(/[- ]/g, '_');
-      link.download = `ACTA_${tipoActa}_${nombre}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      alert(`Acta de ${tipoActa} generada para ${seleccionados.length} material(es).`);
+      const fileName = `ACTA_${tipoActa}_${nombre}.pdf`;
+      const tipoLabel = tipoActa === 'ENTREGA' ? 'Entrega' : 'Devolución';
+
+      setPdfPreview({
+        blob,
+        fileName,
+        defaultAsunto: `Acta de ${tipoLabel} de Material — ${item.nombre} ${item.apellidos || ''}`,
+        defaultDestinatarios: item.emailAboca || '',
+        defaultCuerpo:
+`Estimado/a ${item.nombre},
+
+Adjunto encontrarás el Acta de ${tipoLabel} de Material correspondiente al equipamiento ${tipoActa === 'ENTREGA' ? 'asignado a tu puesto de trabajo' : 'devuelto al departamento de Sistemas'} en Aboca España.
+
+${tipoActa === 'ENTREGA'
+  ? 'Por favor, conserva este documento como justificante de recepción del material.'
+  : 'Queda constancia de la correcta devolución del material detallado en el documento adjunto.'}
+
+Para cualquier duda o incidencia, contacta con el departamento de Informática.
+
+Un saludo,
+Departamento de Informática — Aboca España S.A.U.`,
+        onEnviar: ({ destinatarios, asunto, cuerpo }) =>
+          enviarActaEmail(idMaterialBase, { tipo: tipoActa, seleccionados, destinatarios, asunto, cuerpo })
+      });
     } catch (err) {
       alert(err.status === 401 ? 'Sesión expirada. Vuelve a iniciar sesión.' : 'Error al generar el acta.');
     } finally {
@@ -103,15 +117,29 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
     setProcesandoPdf(true);
     try {
       const id = item._id || item.id;
-      const pdfBlob = await descargarLlaveroCredenciales(id);
-      const blob = new Blob([pdfBlob], { type: 'application/pdf' });
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = `Credenciales_Aboca_${item.nombre.toUpperCase()}_${item.apellidos.toUpperCase()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      alert(`Llavero exportado. La contraseña del PDF es el DNI/NIE de ${item.nombre} en mayúsculas sin guiones.`);
+      const pdfData = await descargarLlaveroCredenciales(id);
+      const blob = new Blob([pdfData], { type: 'application/pdf' });
+      const fileName = `Llavero_Corporativo_${item.nombre.toUpperCase()}_${(item.apellidos || '').toUpperCase()}.pdf`;
+
+      setPdfPreview({
+        blob,
+        fileName,
+        defaultAsunto: `Credenciales Corporativas Aboca — ${item.nombre} ${item.apellidos || ''}`,
+        defaultDestinatarios: item.emailAboca || '',
+        defaultCuerpo:
+`Estimado/a ${item.nombre},
+
+Adjunto encontrarás las Credenciales Corporativas con los accesos a los sistemas de Aboca España.
+
+El PDF está protegido con contraseña. Para abrirlo, introduce tu DNI/NIE en mayúsculas y sin guiones ni espacios.
+
+Este documento es estrictamente confidencial. No lo compartas ni lo almacenes en ubicaciones no seguras.
+
+Un saludo,
+Departamento de Informática — Aboca España S.A.U.`,
+        onEnviar: ({ destinatarios, asunto, cuerpo }) =>
+          enviarLlaveroEmail(id, { destinatarios, asunto, cuerpo })
+      });
     } catch (err) {
       alert(err.status === 404 ? 'Error 404: endpoint de credenciales no encontrado.' : 'Error al generar el llavero.');
     } finally {
@@ -130,6 +158,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
   ];
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-xl flex flex-col max-h-[88vh]">
 
@@ -163,15 +192,67 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
         <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50/30">
 
           {activeTab === 'datos' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {camposVisibles.map(([clave, valor]) => (
-                <div key={clave} className="bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
-                  <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider mb-0.5">
-                    {LABELS[clave] || clave}
-                  </span>
-                  <span className="text-xs font-bold text-slate-700">{formatFieldValue(valor)}</span>
-                </div>
-              ))}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {camposVisibles.map(([clave, valor]) => (
+                  <div key={clave} className="bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
+                    <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider mb-0.5">
+                      {LABELS[clave] || clave}
+                    </span>
+                    <span className="text-xs font-bold text-slate-700">{formatFieldValue(valor)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-700 uppercase flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-slate-400" /> Credenciales Corporativas
+                </h4>
+
+                {!autorizadoCredenciales ? (
+                  <form
+                    onSubmit={handleVerificarPassword}
+                    className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3 text-center"
+                  >
+                    <div className="w-9 h-9 bg-indigo-50 rounded-full flex items-center justify-center mx-auto text-indigo-600">
+                      <KeyRound size={18} />
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Re-introduce tu contraseña de administrador para ver las credenciales de {item.nombre}:
+                    </p>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Contraseña del Administrador"
+                      value={confirmarPass}
+                      onChange={(e) => setConfirmarPass(e.target.value)}
+                      className="w-full p-2.5 text-xs font-bold border border-slate-200 bg-white rounded-xl text-center focus:outline-indigo-600 shadow-inner"
+                    />
+                    <button
+                      type="submit"
+                      disabled={verificandoPass}
+                      className="w-full py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white text-xs font-black rounded-xl transition-colors shadow-sm"
+                    >
+                      {verificandoPass ? 'Verificando...' : 'Validar Identidad'}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-2.5">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-[11px] text-emerald-800 font-bold flex items-center justify-between">
+                      <span>🛡️ Acceso autorizado</span>
+                      <button
+                        type="button"
+                        onClick={() => { setAutorizadoCredenciales(false); setCredenciales({ password: null, passwordApple: null }); setConfirmarPass(''); }}
+                        className="text-[10px] text-emerald-700 hover:text-emerald-900 font-black underline"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                    <CredRow label="Contraseña Corporativa" value={credenciales.password} mono secret />
+                    <CredRow label="Contraseña Apple" value={credenciales.passwordApple} mono secret />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -280,7 +361,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
 
               <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-700 uppercase flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-slate-400" /> Credenciales Corporativas
+                  <KeyRound className="w-3.5 h-3.5 text-slate-400" /> Llavero Corporativo
                 </h4>
 
                 {!autorizadoCredenciales ? (
@@ -326,7 +407,7 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <CredCard titulo="Office365 & Mail" icono="✉️">
                         <CredRow label="Usuario" value={item.emailAboca} />
-                        <CredRow label="Contraseña" value={credenciales.password} mono />
+                        <CredRow label="Contraseña" value={credenciales.password} mono secret />
                       </CredCard>
 
                       <CredCard titulo="CYTRIC – Hoteles/Billetes" icono="🌐">
@@ -348,27 +429,27 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
 
                       <CredCard titulo="ORDINI" icono="🏛️">
                         <CredRow label="Usuario" value={String(item.username || '').toUpperCase()} mono />
-                        <CredRow label="Contraseña" value={String(credenciales.password || '').toUpperCase()} mono />
+                        <CredRow label="Contraseña" value={String(credenciales.password || '').toUpperCase()} mono secret />
                       </CredCard>
 
                       <CredCard titulo="WEBREPORT" icono="📊">
                         <CredRow label="Usuario" value={String(item.username || '').toUpperCase()} mono />
-                        <CredRow label="Contraseña" value={String(credenciales.password || '').toUpperCase()} mono />
+                        <CredRow label="Contraseña" value={String(credenciales.password || '').toUpperCase()} mono secret />
                       </CredCard>
 
                       <CredCard titulo="ABOCA MANAGER" icono="🔑">
                         <CredRow label="Usuario" value={String(item.username || '').toUpperCase()} mono />
-                        <CredRow label="Contraseña" value={String(credenciales.password || '').toUpperCase()} mono />
+                        <CredRow label="Contraseña" value={String(credenciales.password || '').toUpperCase()} mono secret />
                       </CredCard>
 
                       <CredCard titulo="Aboca Reporting" icono="📈">
                         <CredRow label="Usuario" value={item.emailAboca} />
-                        <CredRow label="Contraseña" value={credenciales.password} mono />
+                        <CredRow label="Contraseña" value={credenciales.password} mono secret />
                       </CredCard>
 
                       <CredCard titulo="Apple ID & Terminales" icono="🍏">
                         <CredRow label="Apple ID" value={item.appleID} />
-                        <CredRow label="Contraseña" value={credenciales.passwordApple} mono />
+                        <CredRow label="Contraseña" value={credenciales.passwordApple} mono secret />
                         {item.pinIphone && <CredRow label="PIN iPhone" value={item.pinIphone} mono />}
                         {item.pinIpad && <CredRow label="PIN iPad" value={item.pinIpad} mono />}
                         <CredRow label="Nº Desbloqueo" value="110303" mono />
@@ -391,6 +472,21 @@ const ViewTrabajadorModal = ({ item, onClose }) => {
 
       </div>
     </div>
+
+    {/* Modal de previsualización y envío de PDF */}
+    {pdfPreview && (
+      <PdfPreviewModal
+        isOpen={!!pdfPreview}
+        onClose={() => setPdfPreview(null)}
+        pdfBlob={pdfPreview.blob}
+        fileName={pdfPreview.fileName}
+        defaultAsunto={pdfPreview.defaultAsunto}
+        defaultDestinatarios={pdfPreview.defaultDestinatarios}
+        defaultCuerpo={pdfPreview.defaultCuerpo}
+        onEnviar={pdfPreview.onEnviar}
+      />
+    )}
+    </>
   );
 };
 
@@ -403,13 +499,27 @@ const CredCard = ({ titulo, icono, children }) => (
   </div>
 );
 
-const CredRow = ({ label, value, mono }) => (
-  <p className="text-slate-500 font-medium">
-    {label}:{' '}
-    <span className={`font-bold text-slate-700 ${mono ? 'font-mono' : ''}`}>
-      {value || 'N/A'}
-    </span>
-  </p>
-);
+const CredRow = ({ label, value, mono, secret }) => {
+  const [visible, setVisible] = useState(false);
+  const texto = value || 'N/A';
+  return (
+    <p className="text-slate-500 font-medium flex items-center gap-1.5">
+      {label}:{' '}
+      <span className={`font-bold text-slate-700 ${mono ? 'font-mono' : ''}`}>
+        {secret && !visible && value ? '••••••••' : texto}
+      </span>
+      {secret && (
+        <button
+          type="button"
+          onClick={() => setVisible(v => !v)}
+          className="text-slate-400 hover:text-slate-700 transition-colors"
+          title={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+        >
+          {visible ? <EyeOff size={12} /> : <Eye size={12} />}
+        </button>
+      )}
+    </p>
+  );
+};
 
 export default ViewTrabajadorModal;

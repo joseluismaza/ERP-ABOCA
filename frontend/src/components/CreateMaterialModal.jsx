@@ -66,9 +66,10 @@ const CreateMaterialModal = ({ isOpen, onClose, onCreated, trabajadores = [] }) 
               <option value="Portátil">Portátil</option>
               <option value="Móvil">Móvil</option>
               <option value="Tablet">Tablet</option>
-              <option value="Monitor">Monitor</option>
               <option value="Teclado">Teclado</option>
               <option value="Ratón">Ratón</option>
+              <option value="Teclado/Ratón">Teclado/Ratón</option>
+              <option value="Teclado/Funda + Lapiz">Teclado/Funda + Lapiz</option>
             </select>
           </div>
 

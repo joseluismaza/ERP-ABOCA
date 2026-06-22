@@ -39,6 +39,13 @@ export const descargarActaMaterial = async (materialId, tipo, seleccionados = []
   return response.data;
 };
 
+export const enviarActaEmail = async (materialId, { tipo, seleccionados, destinatarios, asunto, cuerpo }) => {
+  const response = await api.post(`/materiales/${materialId}/enviar-acta`, {
+    tipo, seleccionados, destinatarios, asunto, cuerpo
+  });
+  return response.data;
+};
+
 export const exportarMaterialesExcel = async () => {
   const response = await api.get('/materiales/exportar', {
     responseType: 'blob'

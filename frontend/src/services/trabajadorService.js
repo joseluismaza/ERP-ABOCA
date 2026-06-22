@@ -61,6 +61,11 @@ export const revelarCredenciales = async (id, password) => {
 // con su DNI/NIE. Al usar 'api', el token JWT y la URL base correctas se
 // aplican automáticamente (antes esto se hacía con axios directo y una URL
 // fija a localhost:5000, lo que rompía la descarga en producción).
+export const enviarLlaveroEmail = async (id, { destinatarios, asunto, cuerpo }) => {
+  const response = await api.post(`/trabajadores/${id}/enviar-llavero`, { destinatarios, asunto, cuerpo });
+  return response.data;
+};
+
 export const descargarLlaveroCredenciales = async (id) => {
   const response = await api.post(`/trabajadores/${id}/credenciales-lote`, {}, {
     responseType: 'blob'
