@@ -1,6 +1,7 @@
 // backend/controllers/sistemaController.js
 import Historial from '../models/Historial.js';
 import { catchAsync } from '../middleware/errorHandler.js';
+import { activarTrabajadoresPendientes } from '../services/cronService.js';
 
 // 🟢 CONTROL DE CALENDARIO Y CADUCIDAD DE CONTRASEÑA (60 DÍAS)
 export const checkSMTPStatus = catchAsync(async (req, res) => {
@@ -38,6 +39,20 @@ export const checkSMTPStatus = catchAsync(async (req, res) => {
 
   // Si todo está correcto (quedan más de 7 días)
   res.json({ alerta: false, diasRestantes });
+});
+
+// 🕐 VERCEL CRON JOB — GET /api/sistema/cron/activar-altas
+// Llamado automáticamente por Vercel cada día a las 00:01 UTC.
+// Protegido por CRON_SECRET en lugar de JWT (Vercel no envía token de usuario).
+export const ejecutarCronAltas = catchAsync(async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  const numActivados = await activarTrabajadoresPendientes();
+  console.log(`[VERCEL-CRON] ${numActivados} empleado(s) activado(s) automáticamente.`);
+  res.json({ ok: true, activados: numActivados });
 });
 
 // 📥 ENDPOINT DE DESCARGA BINARIA DE ACTAS

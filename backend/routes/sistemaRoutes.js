@@ -1,12 +1,14 @@
 // backend/routes/sistemaRoutes.js
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import { descargarDocumentoHistorial } from '../controllers/sistemaController.js';
+import { descargarDocumentoHistorial, ejecutarCronAltas } from '../controllers/sistemaController.js';
 
 const router = express.Router();
 
-// Exige un token JWT válido (igual que el resto de módulos del ERP) antes de
-// acceder a cualquiera de las rutas de este archivo.
+// Ruta pública protegida por CRON_SECRET (no JWT) — llamada por Vercel Cron Job
+router.get('/cron/activar-altas', ejecutarCronAltas);
+
+// El resto de rutas exigen token JWT válido
 router.use(authenticateToken);
 
 router.get('/historial/descargar/:historialId', descargarDocumentoHistorial);

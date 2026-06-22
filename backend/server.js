@@ -21,8 +21,6 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import './services/cronService.js';
-
 // Inicialización de la infraestructura de persistencia
 connectDB();
 

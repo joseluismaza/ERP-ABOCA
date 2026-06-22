@@ -1,5 +1,4 @@
 // backend/services/cronService.js
-import cron from 'node-cron';
 import Trabajador from '../models/Trabajador.js';
 import Historial from '../models/Historial.js';
 
@@ -43,21 +42,6 @@ export const activarTrabajadoresPendientes = async () => {
   return trabajadoresParaActivar.length;
 };
 
-// Programamos la tarea para que se ejecute CADA DÍA a las 00:01 AM
-// (red de seguridad por si el servidor estuvo apagado o nadie consultó el
-// listado de trabajadores ese día)
-cron.schedule('1 0 * * *', async () => {
-  console.log('[CRON-JOB] Iniciando verificación diaria de altas automáticas...');
-
-  try {
-    const numActivados = await activarTrabajadoresPendientes();
-
-    if (numActivados === 0) {
-      console.log('[CRON-JOB] No hay altas pendientes para procesar hoy.');
-    } else {
-      console.log(`[CRON-JOB] ${numActivados} empleado(s) activado(s) automáticamente.`);
-    }
-  } catch (error) {
-    console.error('[CRON-JOB CRÍTICO] Error al procesar las altas automáticas:', error);
-  }
-});
+// La tarea programada se ejecuta ahora mediante un Vercel Cron Job que llama a
+// POST /api/sistema/cron/activar-altas cada día a las 00:01 UTC.
+// Ver backend/vercel.json → "crons".
