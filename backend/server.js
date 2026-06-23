@@ -82,7 +82,24 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Capas de seguridad HTTP corporativa y análisis de carga útil
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:      ["'self'"],
+      baseUri:         ["'self'"],
+      fontSrc:         ["'self'", "https:", "data:"],
+      // blob: necesario para el visor de PDF (URL temporal generada en memoria)
+      frameSrc:        ["'self'", "blob:"],
+      imgSrc:          ["'self'", "data:", "blob:"],
+      objectSrc:       ["'none'"],
+      scriptSrc:       ["'self'"],
+      scriptSrcAttr:   ["'none'"],
+      styleSrc:        ["'self'", "https:", "'unsafe-inline'"],
+      connectSrc:      ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
 app.use(express.json());
 
 // CORS solo en rutas /api — los archivos estáticos son mismo dominio y no lo necesitan
