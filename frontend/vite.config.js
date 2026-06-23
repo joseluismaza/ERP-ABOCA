@@ -18,26 +18,28 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/icons/icon-192.svg',
+            src: '/icons/logo-app.jpg',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
           },
           {
-            src: '/icons/icon-512.svg',
+            src: '/icons/logo-app.jpg',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
           },
           {
-            src: '/icons/icon-512.svg',
+            src: '/icons/logo-app.jpg',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
             purpose: 'maskable',
           },
         ],
       },
       workbox: {
+        // Elimina caches de builds anteriores al activar el nuevo service worker
+        cleanupOutdatedCaches: true,
         // Precachea todos los assets del build de Vite
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,jpg,svg,woff2}'],
         runtimeCaching: [
           {
             // Llamadas a la API: siempre datos frescos de la red, caché como fallback

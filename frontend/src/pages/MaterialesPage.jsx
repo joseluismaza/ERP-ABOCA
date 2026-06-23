@@ -50,7 +50,8 @@ const MaterialesPage = () => {
     if (activeIncident && activeIncident.tipo === 'material') {
       const match = materiales.find(m => m._id === activeIncident.id || m.id === activeIncident.id);
       if (match) {
-        if (activeIncident.accion === 'editar') setEditingMaterial(match);
+        if (activeIncident.accion === 'editar' || activeIncident.accion === 'edit') setEditingMaterial(match);
+        if (activeIncident.accion === 'ver' || activeIncident.accion === 'view') setSelectedMaterial(match);
         clearActiveIncident();
       }
     }

@@ -34,7 +34,8 @@ const TelefonosPage = () => {
     if (activeIncident && activeIncident.tipo === 'telefono') {
       const match = telefonos.find(t => t._id === activeIncident.id || t.id === activeIncident.id);
       if (match) {
-        if (activeIncident.accion === 'editar') setEditingTelefono(match);
+        if (activeIncident.accion === 'editar' || activeIncident.accion === 'edit') setEditingTelefono(match);
+        if (activeIncident.accion === 'ver' || activeIncident.accion === 'view') setSelectedTelefono(match);
         clearActiveIncident();
       }
     }

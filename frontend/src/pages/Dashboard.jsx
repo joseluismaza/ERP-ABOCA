@@ -1,13 +1,27 @@
 // frontend/src/pages/Dashboard.jsx
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
+import ViewTrabajadorModal from '../components/ViewTrabajadorModal';
+import EditTrabajadorModal from '../components/EditTrabajadorModal';
+import ViewMaterialModal from '../components/ViewMaterialModal';
+import EditMaterialModal from '../components/EditMaterialModal';
+import ViewTelefonosModal from '../components/ViewTelefonosModal';
+import EditTelefonoModal from '../components/EditTelefonoModal';
 
 // Carga asíncrona del escáner óptico de hardware para optimizar el peso del bundle inicial
 const ZXingScanner = lazy(() => import('../components/ZXingScanner'));
 
 const Dashboard = () => {
   // Consumo de la fuente unificada de datos del ERP desde el estado global en caché
-  const { trabajadores, materiales, telefonos, loading, error } = useGlobalData();
+  const { trabajadores, materiales, telefonos, loading, error, refreshGlobalData } = useGlobalData();
+
+  // Estados locales para los modales abiertos desde el buscador del Dashboard
+  const [selectedTrabajador, setSelectedTrabajador] = useState(null);
+  const [editingTrabajador, setEditingTrabajador] = useState(null);
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [editingMaterial, setEditingMaterial] = useState(null);
+  const [selectedTelefono, setSelectedTelefono] = useState(null);
+  const [editingTelefono, setEditingTelefono] = useState(null);
 
   // Estados locales para el control del buscador y filtrado interactivo
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,11 +135,23 @@ const Dashboard = () => {
     setScannerOpen(false);
   };
 
+  // INPUTS: acción ('view'|'edit'), tipo de entidad ('trabajadores'|'materiales'|'telefonos'), id del registro
+  // PROCESO: busca el registro en el array global y abre el modal correspondiente en el propio Dashboard
+  // OUTPUTS: el modal se monta sobre los resultados de búsqueda sin perder el contexto de la pantalla
   const emitAction = (actionType, entityType, id) => {
-    const event = new CustomEvent('openModal', {
-      detail: { action: actionType, type: entityType, id: id }
-    });
-    window.dispatchEvent(event);
+    if (entityType === 'trabajadores') {
+      const item = trabajadores.find(t => t._id === id);
+      if (actionType === 'view') setSelectedTrabajador(item);
+      if (actionType === 'edit') setEditingTrabajador(item);
+    } else if (entityType === 'materiales') {
+      const item = materiales.find(m => m._id === id);
+      if (actionType === 'view') setSelectedMaterial(item);
+      if (actionType === 'edit') setEditingMaterial(item);
+    } else if (entityType === 'telefonos') {
+      const item = telefonos.find(p => p._id === id);
+      if (actionType === 'view') setSelectedTelefono(item);
+      if (actionType === 'edit') setEditingTelefono(item);
+    }
   };
 
   const countTotalResults = results => results.trabajadores.length + results.materiales.length + results.telefonos.length;
@@ -149,6 +175,7 @@ const Dashboard = () => {
   }
 
   return (
+    <>
     <div className="space-y-6">
       
       {/* SECCIÓN SUPERIOR: Buscador Global e Integración de Cámara */}
@@ -389,6 +416,27 @@ const Dashboard = () => {
         </div>
       )}
     </div>
+
+      {/* Modales del Dashboard — se abren sobre los resultados sin abandonar la búsqueda */}
+      {selectedTrabajador && (
+        <ViewTrabajadorModal title="Colaborador" item={selectedTrabajador} onClose={() => setSelectedTrabajador(null)} />
+      )}
+      {editingTrabajador && (
+        <EditTrabajadorModal isOpen={!!editingTrabajador} trabajador={editingTrabajador} onClose={() => setEditingTrabajador(null)} onUpdated={refreshGlobalData} />
+      )}
+      {selectedMaterial && (
+        <ViewMaterialModal item={selectedMaterial} onClose={() => setSelectedMaterial(null)} />
+      )}
+      {editingMaterial && (
+        <EditMaterialModal isOpen={!!editingMaterial} material={editingMaterial} onClose={() => setEditingMaterial(null)} onUpdated={refreshGlobalData} trabajadores={trabajadores} telefonos={telefonos} />
+      )}
+      {selectedTelefono && (
+        <ViewTelefonosModal title="Línea Telefónica" item={selectedTelefono} onClose={() => setSelectedTelefono(null)} />
+      )}
+      {editingTelefono && (
+        <EditTelefonoModal isOpen={!!editingTelefono} telefono={editingTelefono} onClose={() => setEditingTelefono(null)} onUpdated={refreshGlobalData} />
+      )}
+    </>
   );
 };
 

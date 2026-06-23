@@ -37,6 +37,7 @@ const CreateMaterialModal = ({ isOpen, onClose, onCreated, trabajadores = [] }) 
     // Inyección de lógica matemática de estados según asignación antes de persistir
     const payloadFinal = {
       ...values,
+      TrabajadorId: values.TrabajadorId || null,
       estado: values.TrabajadorId ? 'Asignado' : 'Disponible',
       duracionRenting: values.esRenting ? parseInt(values.duracionRenting, 10) : undefined
     };

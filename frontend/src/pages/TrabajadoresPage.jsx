@@ -31,7 +31,8 @@ const TrabajadoresPage = () => {
     if (activeIncident && activeIncident.tipo === 'trabajador') {
       const match = trabajadores.find(t => t._id === activeIncident.id || t.id === activeIncident.id);
       if (match) {
-        if (activeIncident.accion === 'editar') setEditingTrabajador(match);
+        if (activeIncident.accion === 'editar' || activeIncident.accion === 'edit') setEditingTrabajador(match);
+        if (activeIncident.accion === 'ver' || activeIncident.accion === 'view') setSelectedTrabajador(match);
         clearActiveIncident();
       }
     }

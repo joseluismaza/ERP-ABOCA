@@ -68,9 +68,8 @@ const Sidebar = () => {
         lg:translate-x-0
       `}>
         <div>
-          <div className="h-16 flex items-center px-6 border-b border-gray-50 bg-indigo-600">
-            <span className="text-xl mr-2" role="img" aria-label="Aboca Leaf">🌿</span>
-            <h2 className="text-lg font-bold text-white tracking-wide">ERP Aboca</h2>
+          <div className="h-16 flex items-center justify-center px-4 border-b border-gray-50 bg-indigo-600">
+            <img src="/logo.jpg" alt="ERP Aboca" className="h-10 w-auto object-contain" />
           </div>
 
           <nav className="p-4 flex flex-col gap-1.5 overflow-y-auto">
