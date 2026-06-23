@@ -83,9 +83,10 @@ app.set('trust proxy', 1);
 
 // Capas de seguridad HTTP corporativa y análisis de carga útil
 app.use(helmet());
-app.use(cors(corsOptions)); 
-
 app.use(express.json());
+
+// CORS solo en rutas /api — los archivos estáticos son mismo dominio y no lo necesitan
+app.use('/api', cors(corsOptions));
 
 // Limitador genérico para operaciones ordinarias en las colecciones del ERP
 const globalLimiter = rateLimit({
