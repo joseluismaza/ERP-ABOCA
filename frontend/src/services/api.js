@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Instanciación base de Axios apuntando al prefijo del API Gateway del backend
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 15000, // Protección contra peticiones colgadas en redes lentas
   headers: {
     'Content-Type': 'application/json',
