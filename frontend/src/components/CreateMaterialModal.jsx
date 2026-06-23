@@ -5,7 +5,6 @@ import { createMaterial } from '../services/materialService';
 
 const CreateMaterialModal = ({ isOpen, onClose, onCreated, trabajadores = [] }) => {
   
-  // 🟢 UNA ÚNICA DECLARACIÓN COHESIVA DE useForm
   const [values, handleChange, resetForm] = useForm({
     tipo: 'Portátil', 
     marca: '', 

@@ -72,6 +72,11 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    // Activa la variante con WASM inline (base64) de @undecaf/zbar-wasm
+    // Así no necesita fichero .wasm externo ni vite-plugin-wasm
+    conditions: ['zbar-inlined'],
+  },
   server: {
     port: 3000,
     proxy: {

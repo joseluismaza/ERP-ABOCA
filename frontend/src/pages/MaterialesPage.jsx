@@ -63,7 +63,7 @@ const MaterialesPage = () => {
     return [...new Set(modelos)].sort();
   }, [materiales]);
 
-  // 👥 FILTRAR OPERARIOS (SOLO ACTIVOS O DE BAJA) Y ORDENAR ALFABÉTICAMENTE
+  // Solo activos y bajas (excluye pendientes o estados intermedios), orden alfabético
   const trabajadoresOrdenados = useMemo(() => {
     return [...trabajadores]
       .filter(t => {
@@ -77,7 +77,7 @@ const MaterialesPage = () => {
       });
   }, [trabajadores]);
 
-  // 🛠️ MOTOR DE FILTRADO COMBINADO Y RESPONSIVE
+  // Filtrado combinado: texto libre + renting + estado + marca/modelo
   const filteredData = useMemo(() => {
     return materiales.filter(m => {
       // 1. Buscador por texto libre (Marca, Modelo, S/N o IMEI)

@@ -20,7 +20,6 @@ const TelefonosPage = () => {
 
   const { activeIncident, clearActiveIncident } = useNotifications();
 
-  // 🎛️ ESTADOS DE FILTRADO
   const [filterQuery, setFilterQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState(''); // '' | 'disponible' | 'asignado'
   const [workerFilter, setWorkerFilter] = useState(''); // '' | ID del Trabajador
@@ -41,7 +40,7 @@ const TelefonosPage = () => {
     }
   }, [activeIncident, telefonos, clearActiveIncident]);
 
-  // 👥 ORDENAR TRABAJADORES ALFABÉTICAMENTE PARA EL SELECT
+  // Orden alfabético para el selector de trabajadores en filtros
   const trabajadoresOrdenados = useMemo(() => {
     return [...trabajadores]
       .filter(t => {
@@ -56,7 +55,7 @@ const TelefonosPage = () => {
       });
   }, [trabajadores]);
 
-  // 🚀 LÓGICA DE FILTRADO COMBINADO Y MULTI-CRITERIO
+  // Filtrado combinado: texto libre + estado + trabajador + dispositivo
   const filteredData = useMemo(() => {
     return telefonos.filter(t => {
       // 1. Filtro por Buscador de Texto Plano
@@ -249,7 +248,6 @@ const TelefonosPage = () => {
         </div>
       </div>
 
-      {/* 🛠️ CONTENEDOR FLUIDO DE FILTROS AVANZADOS */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200/60 shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center w-full">
         
         {/* Buscador de texto ordinario */}

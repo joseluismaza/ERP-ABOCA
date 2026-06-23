@@ -13,7 +13,7 @@ const ScannerModal = ({ isOpen, onClose, onDetected }) => {
           <button onClick={onClose} className="text-white hover:text-indigo-200 transition-colors text-lg p-1">✕</button>
         </div>
         <div className="p-4 bg-slate-50">
-          <div className="w-full h-[280px] rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner bg-black">
+          <div className="w-full h-[180px] rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner bg-black">
             <ZXingScanner onDetected={onDetected} onClose={onClose} />
           </div>
         </div>

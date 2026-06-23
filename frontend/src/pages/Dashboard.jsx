@@ -419,7 +419,7 @@ const Dashboard = () => {
 
       {/* Modales del Dashboard — se abren sobre los resultados sin abandonar la búsqueda */}
       {selectedTrabajador && (
-        <ViewTrabajadorModal title="Colaborador" item={selectedTrabajador} onClose={() => setSelectedTrabajador(null)} />
+        <ViewTrabajadorModal item={selectedTrabajador} onClose={() => setSelectedTrabajador(null)} />
       )}
       {editingTrabajador && (
         <EditTrabajadorModal isOpen={!!editingTrabajador} trabajador={editingTrabajador} onClose={() => setEditingTrabajador(null)} onUpdated={refreshGlobalData} />
@@ -431,7 +431,7 @@ const Dashboard = () => {
         <EditMaterialModal isOpen={!!editingMaterial} material={editingMaterial} onClose={() => setEditingMaterial(null)} onUpdated={refreshGlobalData} trabajadores={trabajadores} telefonos={telefonos} />
       )}
       {selectedTelefono && (
-        <ViewTelefonosModal title="Línea Telefónica" item={selectedTelefono} onClose={() => setSelectedTelefono(null)} />
+        <ViewTelefonosModal item={selectedTelefono} onClose={() => setSelectedTelefono(null)} />
       )}
       {editingTelefono && (
         <EditTelefonoModal isOpen={!!editingTelefono} telefono={editingTelefono} onClose={() => setEditingTelefono(null)} onUpdated={refreshGlobalData} />

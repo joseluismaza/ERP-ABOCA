@@ -160,7 +160,7 @@ const EditMaterialModal = ({ isOpen, onClose, material, onUpdated, trabajadores 
       }
     }
 
-    // 🛡️ SANEAMIENTO DE PAYLOAD: Convertimos las cadenas vacías en valores null válidos para MongoDB
+    // Convertir cadenas vacías a null para que MongoDB no rechace el ObjectId
     const payloadFinal = {
       ...values,
       // Si está vacío, guardamos null para desvincular al trabajador en el Back
