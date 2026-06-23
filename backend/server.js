@@ -19,8 +19,13 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
+
+// __dirname no existe en ES Modules, se reconstruye a partir de la URL del archivo actual
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Inicialización de la infraestructura de persistencia
 connectDB();
 
@@ -115,6 +120,17 @@ app.use('/api/materiales', materialRoutes);
 app.use('/api/telefonos', telefonoRoutes);
 app.use('/api/historial', historialRoutes);
 app.use('/api/sistema', sistemaRoutes);
+
+// Sirve los archivos estáticos del frontend compilado (React/Vite dist)
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Ruta comodín para React Router: cualquier ruta no-API devuelve el index.html
+// INPUTS: cualquier GET que no haya sido capturado por las rutas /api/*
+// PROCESO: envía el index.html para que React Router gestione la navegación en cliente
+// OUTPUTS: respuesta HTML que inicia la aplicación React
+app.get('*', (_req, res) =>
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
+);
 
 // Interceptor global final para capturar y normalizar todas las excepciones de la aplicación
 app.use(errorHandler);
