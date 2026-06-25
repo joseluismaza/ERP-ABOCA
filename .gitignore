@@ -19,3 +19,6 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Archivos Excel generados automáticamente por el servidor
+backend/exports/

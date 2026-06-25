@@ -1,5 +1,5 @@
 // frontend/src/pages/Dashboard.jsx
-import React, { useState, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
 import ViewTrabajadorModal from '../components/ViewTrabajadorModal';
 import EditTrabajadorModal from '../components/EditTrabajadorModal';
@@ -7,9 +7,6 @@ import ViewMaterialModal from '../components/ViewMaterialModal';
 import EditMaterialModal from '../components/EditMaterialModal';
 import ViewTelefonosModal from '../components/ViewTelefonosModal';
 import EditTelefonoModal from '../components/EditTelefonoModal';
-
-// Carga asíncrona del escáner óptico de hardware para optimizar el peso del bundle inicial
-const ZXingScanner = lazy(() => import('../components/ZXingScanner'));
 
 const Dashboard = () => {
   // Consumo de la fuente unificada de datos del ERP desde el estado global en caché
@@ -25,7 +22,6 @@ const Dashboard = () => {
 
   // Estados locales para el control del buscador y filtrado interactivo
   const [searchQuery, setSearchQuery] = useState('');
-  const [scannerOpen, setScannerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('todos'); // Control visual: 'todos', 'trabajadores', 'materiales', 'telefonos'
 
   /**
@@ -130,11 +126,6 @@ const Dashboard = () => {
     };
   }, [searchQuery, trabajadores, materiales, telefonos]);
 
-  const handleScanSuccess = (decodedText) => {
-    setSearchQuery(decodedText);
-    setScannerOpen(false);
-  };
-
   // INPUTS: acción ('view'|'edit'), tipo de entidad ('trabajadores'|'materiales'|'telefonos'), id del registro
   // PROCESO: busca el registro en el array global y abre el modal correspondiente en el propio Dashboard
   // OUTPUTS: el modal se monta sobre los resultados de búsqueda sin perder el contexto de la pantalla
@@ -201,25 +192,8 @@ const Dashboard = () => {
               )}
             </div>
             
-            <button
-              onClick={() => setScannerOpen(prev => !prev)}
-              className={`px-4 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all ${
-                scannerOpen ? 'bg-red-500 text-white shadow-md' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-100'
-              }`}
-            >
-              <span>📷</span>
-              <span className="hidden sm:inline">{scannerOpen ? 'Cerrar' : 'Escanear'}</span>
-            </button>
           </div>
         </div>
-
-        {scannerOpen && (
-          <div className="mt-6 max-w-xl mx-auto border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden p-4 bg-gray-50">
-            <Suspense fallback={<div className="text-center py-6 text-sm text-gray-500 animate-pulse">Inicializando cámara...</div>}>
-              <ZXingScanner onDetected={handleScanSuccess} onClose={() => setScannerOpen(false)} />
-            </Suspense>
-          </div>
-        )}
       </div>
 
       {/* RENDERIZADO DINÁMICO DE PANELES */}

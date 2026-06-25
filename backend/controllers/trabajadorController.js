@@ -13,6 +13,7 @@ import PDFDocument from 'pdfkit';
 import { encrypt, descifrarCredencialesTrabajador } from "../utils/crypto.js";
 import { activarTrabajadoresPendientes } from "../services/cronService.js";
 import { enviarEmailConAdjunto } from "../services/emailService.js";
+import { generarExcelVMF } from "../services/vmfExcelService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,6 +69,14 @@ export const createTrabajador = catchAsync(async (req, res) => {
     observaciones: observacionesOnboarding
   });
 
+  // Si el trabajador es VMF, regenerar el Excel automáticamente sin bloquear la respuesta
+  if (trabajador.cargo?.trim().toUpperCase() === 'VMF') {
+    console.log(`🔄 [VMF] Trigger CREATE activado para: ${trabajador.nombre} ${trabajador.apellidos}`);
+    generarExcelVMF().catch(err =>
+      console.error('⚠️ No se pudo actualizar el Excel VMF:', err.message, err.stack)
+    );
+  }
+
   res.status(201).json(trabajador);
 });
 
@@ -103,6 +112,16 @@ export const updateTrabajador = catchAsync(async (req, res) => {
     observaciones: `Datos del empleado ${nombreCompleto} actualizados. Estado actual del registro: ${trabajador.estado}.`
   });
 
+  // Regenerar Excel VMF si el cargo era o es VMF (cubre cambios hacia/desde VMF)
+  const eraVMF = trabajadorOriginal.cargo?.trim().toUpperCase() === 'VMF';
+  const esVMF  = trabajador.cargo?.trim().toUpperCase() === 'VMF';
+  console.log(`🔍 [VMF] Trigger UPDATE — cargo antes: "${trabajadorOriginal.cargo}" | cargo ahora: "${trabajador.cargo}" | activa: ${eraVMF || esVMF}`);
+  if (eraVMF || esVMF) {
+    generarExcelVMF().catch(err =>
+      console.error('⚠️ No se pudo actualizar el Excel VMF:', err.message, err.stack)
+    );
+  }
+
   res.json(trabajador);
 });
 
@@ -137,10 +156,9 @@ export const exportToExcel = catchAsync(async (req, res) => {
     { header: 'Matrícula SAP', key: 'matriculaSAP', width: 15 },
     { header: 'Cargo / Puesto', key: 'cargo', width: 25 },
     { header: 'Agente', key: 'agente', width: 10},
-    { header: 'Código Zona', key: 'codZona', width: 10},
+    { header: 'Código Zona', key: 'codigoZona', width: 10},
     { header: 'Zona / Delegación', key: 'zona', width: 18 },
     { header: 'Calendario', key: 'calendario', width: 18},
-    { header: 'Estado', key: 'estado', width: 18 },
     { header: 'Email Corporativo', key: 'emailAboca', width: 28 },
     { header: 'Username', key: 'username', width: 18},
     { header: 'Apple Id', key: 'appleID', width: 28},
@@ -170,17 +188,19 @@ export const exportToExcel = catchAsync(async (req, res) => {
       nombre: t.nombre || '',
       apellidos: t.apellidos || '',
       dni: t.dni || '',
+      fechaNacimiento: t.fechaNacimiento ? new Date(t.fechaNacimiento).toLocaleDateString('es-ES') : '',
+      genero: t.genero || '',
+      estado: t.estado || '',
       matriculaSAP: t.matriculaSAP || '',
       cargo: t.cargo || '',
       zona: t.zona || '',
-      estado: t.estado || '',
       emailAboca: t.emailAboca || '',
       fechaAlta: t.fechaAlta ? new Date(t.fechaAlta).toLocaleDateString('es-ES') : '',
-      fechaBaja: t.fechaBaja ? new Date(t.fechaBaja).toLocaleDateString('es-ES') : 'Activo',
+      fechaBaja: t.fechaBaja ? new Date(t.fechaBaja).toLocaleDateString('es-ES') : '',
       poblacion: t.poblacion || '',
       domicilio: t.domicilio || '',
       agente: t.agente || '',
-      codZona: t.codZona || '',
+      codigoZona: t.codigoZona || '',
       calendario: t.calendario || '',
       username: t.username || '',
       appleID: t.appleID || '',

@@ -8,7 +8,6 @@ import Table from '../components/Table';
 import CreateMaterialModal from '../components/CreateMaterialModal';
 import EditMaterialModal from '../components/EditMaterialModal';
 import ViewMaterialModal from '../components/ViewMaterialModal';
-import ScannerModal from '../components/ScannerModal';
 import { Keyboard, Monitor, Laptop, Smartphone, Tablet, Edit2, Eye, Trash2, Filter } from 'lucide-react'
 
 const TIPO_ICONS = {
@@ -42,7 +41,6 @@ const MaterialesPage = () => {
 
   // Estados de Modales
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [editingMaterial, setEditingMaterial] = useState(null);
 
@@ -241,8 +239,7 @@ const MaterialesPage = () => {
         </div>
         <div className="flex flex-wrap gap-2 w-full lg:w-auto">
           <button onClick={handleExportarExcel} className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5">📊 Exportar Excel</button>
-          <button onClick={() => setIsScannerOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5">📷 Escanear Código</button>
-          <button onClick={() => setIsCreateOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5">➕ Añadir Material</button>
+<button onClick={() => setIsCreateOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5">➕ Añadir Material</button>
         </div>
       </div>
 
@@ -360,7 +357,6 @@ const MaterialesPage = () => {
       <CreateMaterialModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={reloadGlobalData} trabajadores={trabajadores} />
       {editingMaterial && <EditMaterialModal isOpen={!!editingMaterial} onClose={() => setEditingMaterial(null)} material={editingMaterial} onUpdated={reloadGlobalData} trabajadores={trabajadores} telefonos={telefonos} />}
       {selectedMaterial && <ViewMaterialModal item={selectedMaterial} onClose={() => setSelectedMaterial(null)} />}
-      <ScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onDetected={(code) => { setFilterQuery(code); setIsScannerOpen(false); }} />
     </div>
   );
 };
