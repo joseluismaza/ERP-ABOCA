@@ -231,10 +231,6 @@ export const exportToPDF = catchAsync(async (req, res) => {
   }
 
   for (const bloque of zonas) {
-    const altoBloque        = ALTO_HEADER + bloque.items.length * ALTO_FILA;
-    const espacioDisponible = ALTO_PAGINA - MARGEN - currentY;
-    const separacion        = primeraZona ? 0 : SEPARACION_ZONA;
-
     // Cada zona empieza siempre en página nueva (salvo la primera)
     if (!primeraZona) {
       doc.addPage();
