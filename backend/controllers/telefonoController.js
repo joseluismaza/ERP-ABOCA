@@ -117,8 +117,7 @@ export const exportToPDF = catchAsync(async (req, res) => {
   const COLOR_FILA_B     = '#f1f5f9';
   const COLOR_TEXTO      = '#1e293b';
 
-  const SEPARACION_ZONA = 10;
-  const PAD_COL         = 18; // padding mínimo por columna al medir texto
+  const PAD_COL = 18; // padding mínimo por columna al medir texto
 
   // Helpers de clasificación
   const ZONAS_CON_CARGO = ['apoteca natura', 'servicios generales'];
