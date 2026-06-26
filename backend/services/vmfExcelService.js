@@ -46,8 +46,10 @@ export const generarExcelVMF = async () => {
     { header: 'Agente',            key: 'agente',       width: 12 },
     { header: 'Código Zona',       key: 'codigoZona',   width: 12 },
     { header: 'Zona / Delegación', key: 'zona',         width: 20 },
-    { header: 'Nº Comercial',      key: 'codComercial', width: 15 },
-    { header: 'Agente Médico',     key: 'agentMedico',  width: 15 },
+    { header: 'Nº Comercial',      key: 'codComercial',  width: 15 },
+    { header: 'Agente Comercial',  key: 'agentComercial', width: 15 },
+    { header: 'Cód Médico',        key: 'codMedico',     width: 15 },
+    { header: 'Agente Médico',     key: 'agentMedico',   width: 15 },
   ];
 
   // Cabecera estilizada
@@ -66,8 +68,10 @@ export const generarExcelVMF = async () => {
       agente:       t.agente       || '',
       codigoZona:   t.codigoZona   || '',
       zona:         t.zona         || '',
-      codComercial: t.codComercial || '',
-      agentMedico:  t.agentMedico  || '',
+      codComercial:  t.codComercial  || '',
+      agentComercial: t.agentComercial || '',
+      codMedico:     t.codMedico     || '',
+      agentMedico:   t.agentMedico   || '',
     });
   });
 
