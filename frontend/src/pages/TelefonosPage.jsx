@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useGlobalData } from '../contexts/GlobalDataContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { usePagination } from '../hooks/usePagination';
-import { deleteTelefono, exportarTelefonosExcel } from '../services/telefonoService';
+import { deleteTelefono, exportarTelefonosExcel, exportarTelefonosPDF } from '../services/telefonoService';
 import Table from '../components/Table';
 import CreateTelefonoModal from '../components/CreateTelefonoModal';
 import EditTelefonoModal from '../components/EditTelefonoModal';
@@ -119,6 +119,23 @@ const TelefonosPage = () => {
     }
   };
 
+  const handleExportarPDF = async () => {
+    try {
+      const data = await exportarTelefonosPDF();
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Telefonos_iPhone_Zonas.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al exportar el PDF:", error);
+      alert("No se ha podido generar el PDF. Revisa tus permisos de administrador.");
+    }
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm('¿Desea rescindir e inactivar esta línea telefónica del ERP?')) {
       try {
@@ -222,6 +239,7 @@ const TelefonosPage = () => {
           <p className="text-xs text-slate-400 font-medium">Control de líneas móviles, perfiles de tarjetas SIM/eSIM y extensiones corporativas.</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={handleExportarPDF} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5">📄 PDF Zonas</button>
           <button onClick={handleExportarExcel} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5">📊 Exportar Excel</button>
           <button onClick={() => setIsCreateOpen(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5">
             ➕ Aprovisionar Línea

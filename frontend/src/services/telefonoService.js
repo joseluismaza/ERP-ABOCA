@@ -27,3 +27,10 @@ export const exportarTelefonosExcel = async () => {
   });
   return response.data;
 };
+
+export const exportarTelefonosPDF = async () => {
+  const response = await api.get('/telefonos/exportar-pdf', {
+    responseType: 'blob'
+  });
+  return response.data;
+};

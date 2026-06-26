@@ -6,15 +6,17 @@ import {
   createTelefono,
   updateTelefono,
   deleteTelefono,
-  exportToExcel
+  exportToExcel,
+  exportToPDF
 } from '../controllers/telefonoController.js';
 
 const router = express.Router();
 
 router.use(authenticateToken);
 
-// Ruta fija antes de /:id para evitar colisiones en Express
+// Rutas fijas antes de /:id para evitar colisiones en Express
 router.get('/exportar', exportToExcel);
+router.get('/exportar-pdf', exportToPDF);
 
 router.get('/', getAllTelefonos);
 router.get('/:id', getTelefonoById);
